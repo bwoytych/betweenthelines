@@ -1,65 +1,17 @@
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f9f9f9;
-    color: #333;
-}
-header {
-    background: #2c3e50;
-    color: white;
-    padding: 1rem;
-    text-align: center;
-}
-nav {
-    background: #34495e;
-    padding: 0.5rem;
-    text-align: center;
-}
-nav a {
-    color: white;
-    margin: 0 10px;
-    text-decoration: none;
-    font-weight: bold;
-}
-nav a:hover {
-    text-decoration: underline;
-}
-main {
-    padding: 1rem 2rem;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
-}
-table, th, td {
-    border: 1px solid #ccc;
-}
-th, td {
-    padding: 0.5rem;
-    text-align: center;
-}
-h2 {
-    margin-top: 2rem;
-    color: #2c3e50;
-}
-.bracket {
-    border: 2px dashed #888;
-    padding: 1rem;
-    margin-top: 1rem;
-    text-align: center;
-    background: #fff;
-}
-
-/* Team Colors */
-.team-jake { background-color: #3498db; color: white; }
-.team-carter { background-color: #e74c3c; color: white; }
-.team-alex { background-color: #2ecc71; color: white; }
-.team-ben { background-color: #9b59b6; color: white; }
-.team-mike { background-color: #f1c40f; color: black; }
-.team-sam { background-color: #1abc9c; color: white; }
-.team-ryan { background-color: #e67e22; color: white; }
-.team-dan { background-color: #34495e; color: white; }
-.team-chris { background-color: #95a5a6; color: black; }
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f4f6f9;color:#222}
+header{background:#2c3e50;color:#fff;padding:1rem;text-align:center}
+nav{background:#34495e;padding:8px;text-align:center;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.tabbtn{background:#fff;border:1px solid #ddd;padding:8px 10px;border-radius:6px;cursor:pointer}
+.tabbtn.active{background:#0b5cff;color:white;border-color:#0b5cff}
+main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;max-width:1200px;margin:12px auto}
+.panel{background:#fff;border:1px solid #eee;padding:12px;border-radius:8px;min-height:180px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #eee;padding:6px;text-align:center}
+th{background:#0077cc;color:#fff}
+.scroll{overflow:auto;max-height:420px}
+.bracketContainer{display:flex;gap:12px;align-items:flex-start}
+.round{flex:1}
+.match{background:#fff;padding:8px;border-radius:6px;border:1px solid #ddd;margin:8px 0;display:flex;gap:8px;justify-content:center}
+.match button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f7f7f7;cursor:pointer}
+.match button:hover{background:#eee}
