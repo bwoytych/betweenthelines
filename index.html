@@ -143,7 +143,6 @@ function renderBracket(standings, seasonName, rows){
       const lbAsVal = parseInt(lbAs.value)||0, lbBsVal = parseInt(lbBs.value)||0; const lbWin = (lbAsVal!==lbBsVal)?(lbAsVal>lbBsVal? lbA.value : lbB.value):'';
       const state = {sf1:{a:sf1a.value,b:sf1b.value,ascore:sf1as.value,bscore:sf1bs.value}, sf2:{a:sf2a.value,b:sf2b.value,ascore:sf2as.value,bscore:sf2bs.value}, final:{a:finA.value,b:finB.value,ascore:finAS.value,bscore:finBS.value}, third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value}, loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value}}};
       localStorage.setItem(storageKey, JSON.stringify(state));
-    }
     [sf1a,sf1as,sf1b,sf1bs,sf2a,sf2as,sf2b,sf2bs,finA,finAS,finB,finBS,tA,tAs,tB,tBs,lbA,lbAs,lbB,lbBs].forEach(el=> el.addEventListener('input', resolve));
     resolve();
     return;
