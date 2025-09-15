@@ -1,101 +1,41 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Between the Lines — Fantasy History</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Between the Lines — Fantasy History (Embedded)</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>Between the Lines — Fantasy History</h1>
-  <p class="subtitle">Standings, H2H, and interactive playoff bracket (editable)</p>
-</header>
-
-<nav class="nav">
-  <div id="season-buttons"></div>
-</nav>
-
-<main class="container">
-  <section class="card" id="standings-card">
-    <h2 id="season-title">Loading...</h2>
-    <div id="standings-area">Loading standings…</div>
-  </section>
-
-  <section class="card" id="h2h-card">
-    <h2>Head-to-Head</h2>
-    <div id="h2h-area">Loading head-to-head…</div>
-  </section>
-
-  <section class="card" id="bracket-card">
-    <h2>Playoff Bracket (editable)</h2>
-    <div id="bracket-area">Select a season to load bracket slots.</div>
-    <div style="margin-top:8px;"><button id="reset-bracket">Reset Bracket to Seeds</button></div>
-  </section>
-
-  <section class="card" id="alltime-card">
-    <h2>All-Time Champions</h2>
-    <div id="champions-area">Loading champions…</div>
-  </section>
+<header><h1>Between the Lines — Fantasy History</h1><p class="subtitle">Standings, H2H, interactive bracket — data from embedded workbook</p></header>
+<nav id="nav"></nav>
+<main class="main">
+  <section class="card" id="standings-card"><h2 id="season-title">Loading...</h2><div id="standings-area"></div></section>
+  <section class="card" id="h2h-card"><h2>Head-to-Head</h2><div id="h2h-area"></div></section>
+  <section class="card" id="bracket-card"><h2>Playoff Bracket (editable)</h2><div id="bracket-area"></div><div style="margin-top:8px"><button id="reset-bracket">Reset Bracket</button></div></section>
+  <section class="card" id="alltime-card"><h2>All-Time</h2><div id="alltime-area"></div></section>
 </main>
-
-<footer class="footer">Data source: your published Google Sheet. Bracket edits are stored locally in your browser (not in the sheet).</footer>
+<footer class="footer">Data source: embedded Excel snapshot. Bracket edits stored locally.</footer>
 
 <script>
-const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
-const SEASONS = ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "All Time"];
-
-// team color palette mapping (will be applied by class name)
-const TEAM_COLORS = {
-  "Carter": "#1E8449",
-  "Jake": "#2980B9",
-  "Jimmy": "#C0392B",
-  "Leahy": "#8E44AD",
-  "Swift": "#E67E22",
-  "Ben": "#7F8C8D",
-  "Gibby": "#16A085",
-  "Kyle": "#F1C40F",
-  "Collin": "#E91E63"
-};
-
-async function fetchSheetCSV(sheetName) {
-  const url = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(sheetName);
-  const res = await fetch(url);
-  if(!res.ok) throw new Error("Network response not ok");
-  const txt = await res.text();
-  return parseCSV(txt);
+async function loadEmbeddedData(){
+  const res = await fetch('data.json');
+  const obj = await res.json();
+  return obj;
 }
 
-function parseCSV(text) {
-  const rows = [];
-  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=="");
-  for(const line of lines) {
-    const row = [];
-    let cur = ""; let inQuotes=false;
-    for(let i=0;i<line.length;i++){
-      const ch = line[i];
-      if(ch==='"') { inQuotes = !inQuotes; continue; }
-      if(ch===',' && !inQuotes) { row.push(cur); cur=""; continue; }
-      cur += ch;
-    }
-    row.push(cur);
-    rows.push(row.map(c=>c.trim()));
-  }
-  return rows;
-}
-
-function findStandingsHeader(rows) {
-  for(let r=0;r<Math.min(10, rows.length); r++) {
-    const row = rows[r].map(c=>c.toLowerCase());
-    if(row.some(c=>c.includes('team')) && row.some(c=>c.includes('win'))) return r;
+function findStandingsHeader(rows){
+  for(let r=0; r<Math.min(10, rows.length); r++){ 
+    const lower = rows[r].map(c=>String(c).toLowerCase());
+    if(lower.some(c=>c.includes('team')) && lower.some(c=>c.includes('win'))) return r;
   }
   return -1;
 }
 
-function extractStandings(rows) {
+function extractStandings(rows){
   const hdr = findStandingsHeader(rows);
-  if(hdr>=0) {
-    const headers = rows[hdr].map(h=>h.toLowerCase());
+  if(hdr>=0){
+    const headers = rows[hdr].map(h=>String(h).toLowerCase());
     const teamCol = headers.findIndex(h=>h.includes('team'));
     const winsCol = headers.findIndex(h=>h.includes('win') && !h.includes('%'));
     const lossCol = headers.findIndex(h=>h.includes('loss'));
@@ -103,337 +43,183 @@ function extractStandings(rows) {
     const paCol = headers.findIndex(h=>h.includes('points against')||h==='pa');
     const pctCol = headers.findIndex(h=>h.includes('win %')||h.includes('win%')||h.includes('pct'));
     const out=[];
-    for(let r=hdr+1;r<rows.length;r++) {
-      const t = rows[r][teamCol]||"";
-      if(!t || t.trim()==="") break;
-      out.push({team:t, wins:rows[r][winsCol]||"", losses:rows[r][lossCol]||"", pf:rows[r][pfCol]||"", pa:rows[r][paCol]||"", pct:rows[r][pctCol]||""});
+    for(let r=hdr+1;r<rows.length;r++){
+      const t = rows[r][teamCol]||'';
+      if(!t || String(t).trim()==='') break;
+      out.push({team:String(t).trim(), wins:String(rows[r][winsCol]||'').trim(), losses:String(rows[r][lossCol]||'').trim(), pf:String(rows[r][pfCol]||'').trim(), pa:String(rows[r][paCol]||'').trim(), pct:String(rows[r][pctCol]||'').trim()});
     }
     return out;
-  } else {
+  } else { 
     const accum = {};
-    for(const r of rows) {
+    for(const r of rows){
       if(r.length<5) continue;
-      const ta = (r[1]||'').trim(), sa = parseFloat(r[2]), tb = (r[3]||'').trim(), sb = parseFloat(r[4]||'');
+      const ta = String(r[1]||'').trim(); const sa = parseFloat(String(r[2]||'').replace(/[^0-9\.\-]/g,''));
+      const tb = String(r[3]||'').trim(); const sb = parseFloat(String(r[4]||'').replace(/[^0-9\.\-]/g,''));
       if(!ta || !tb) continue;
       if(!accum[ta]) accum[ta] = {team:ta,w:0,l:0,pf:0,pa:0};
       if(!accum[tb]) accum[tb] = {team:tb,w:0,l:0,pf:0,pa:0};
-      if(!isNaN(sa) && !isNaN(sb)) {
-        accum[ta].pf += sa; accum[ta].pa += sb;
-        accum[tb].pf += sb; accum[tb].pa += sa;
-        if(sa > sb) { accum[ta].w +=1; accum[tb].l +=1; }
-        else if(sa < sb) { accum[tb].w +=1; accum[ta].l +=1; }
+      if(!isNaN(sa) && !isNaN(sb)){ accum[ta].pf += sa; accum[ta].pa += sb; accum[tb].pf += sb; accum[tb].pa += sa;
+        if(sa>sb){ accum[ta].w +=1; accum[tb].l +=1; } else if(sa<sb){ accum[tb].w +=1; accum[ta].l +=1; }
       }
     }
-    return Object.values(accum).map(x=>({team:x.team,wins:x.w,losses:x.l,pf:x.pf,pa:x.pa,pct: (x.w+x.l)>0?Math.round((x.w/(x.w+x.l))*1000)/1000:''})).sort((a,b)=>b.wins-a.wins||b.pf-a.pf);
-  } 
+    return Object.values(accum).map(x=>({team:x.team,wins:x.w,losses:x.l,pf:x.pf,pa:x.pa,pct:(x.w+x.l)>0?Math.round((x.w/(x.w+x.l))*1000)/1000:''})).sort((a,b)=>b.wins-a.wins||b.pf-a.pf);
+  }
 }
 
-function computeH2H(rows, teamOrder) {
-  const map = {};
-  const teams = teamOrder.slice();
+function computeH2H(rows, teamOrder){
+  const map = {}; const teams = teamOrder.slice();
   teams.forEach(t=> map[t] = {});
-  for(const r of rows) {
+  for(const r of rows){
     if(r.length<5) continue;
-    const ta = (r[1]||'').trim(), sa = parseFloat(r[2]), tb = (r[3]||'').trim(), sb = parseFloat(r[4]||'');
+    const ta = String(r[1]||'').trim(); const sa = parseFloat(String(r[2]||'').replace(/[^0-9\.\-]/g,''));
+    const tb = String(r[3]||'').trim(); const sb = parseFloat(String(r[4]||'').replace(/[^0-9\.\-]/g,''));
     if(!ta || !tb) continue;
     if(!map[ta]) map[ta] = {}; if(!map[tb]) map[tb] = {};
-    if(!map[ta][tb]) map[ta][tb] = {w:0,l:0,t:0};
-    if(!map[tb][ta]) map[tb][ta] = {w:0,l:0,t:0};
-    if(!isNaN(sa) && !isNaN(sb)) {
-      if(sa>sb) { map[ta][tb].w +=1; map[tb][ta].l +=1; }
-      else if(sa<sb) { map[tb][ta].w +=1; map[ta][tb].l +=1; }
-      else { map[ta][tb].t +=1; map[tb][ta].t +=1; }
-    }
+    if(!map[ta][tb]) map[ta][tb] = {w:0,l:0,t:0}; if(!map[tb][ta]) map[tb][ta] = {w:0,l:0,t:0};
+    if(!isNaN(sa) && !isNaN(sb)){ if(sa>sb){ map[ta][tb].w +=1; map[tb][ta].l +=1; } else if(sa<sb){ map[tb][ta].w +=1; map[ta][tb].l +=1; } else { map[ta][tb].t +=1; map[tb][ta].t +=1; } }
   }
   teams.forEach(a=> teams.forEach(b=> { if(!map[a][b]) map[a][b] = {w:0,l:0,t:0}; }));
   return {teams, map};
 }
 
-function renderStandingsTable(standings) {
-  const container = document.getElementById('standings-area');
-  container.innerHTML = '';
-  const tbl = document.createElement('table');
-  tbl.className = 'standings-table';
-  const thead = document.createElement('thead');
-  thead.innerHTML = '<tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr>';
-  tbl.appendChild(thead);
+function renderStandings(standings){
+  const container = document.getElementById('standings-area'); container.innerHTML='';
+  const tbl = document.createElement('table'); tbl.className='standings-table';
+  const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr>'; tbl.appendChild(thead);
   const tbody = document.createElement('tbody');
-  standings.forEach((s,i)=>{
-    const tr = document.createElement('tr');
-    const teamSpan = document.createElement('span');
-    teamSpan.textContent = s.team;
-    const cls = 'team-' + s.team.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    teamSpan.className = 'team-label ' + cls;
-    tr.appendChild(document.createElement('td')).textContent = i+1;
-    const tdTeam = document.createElement('td'); tdTeam.appendChild(teamSpan); tr.appendChild(tdTeam);
-    tr.appendChild(document.createElement('td')).textContent = s.wins || '';
-    tr.appendChild(document.createElement('td')).textContent = s.losses || '';
-    tr.appendChild(document.createElement('td')).textContent = s.pf || '';
-    tr.appendChild(document.createElement('td')).textContent = s.pa || '';
-    tr.appendChild(document.createElement('td')).textContent = s.pct || '';
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);
-  container.appendChild(tbl);
+  standings.forEach((s,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = '<td>'+ (i+1) + '</td><td><span class="team-label">'+ s.team + '</span></td><td>'+ s.wins + '</td><td>'+ s.losses + '</td><td>'+ s.pf + '</td><td>'+ s.pa + '</td><td>'+ s.pct + '</td>'; tbody.appendChild(tr); });
+  tbl.appendChild(tbody); container.appendChild(tbl);
 }
 
-function renderH2HGrid(h2h) {
-  const container = document.getElementById('h2h-area');
-  container.innerHTML = '';
-  const table = document.createElement('table');
-  table.className = 'h2h-table';
-  const headerRow = document.createElement('tr');
-  headerRow.appendChild(document.createElement('th'));
-  h2h.teams.forEach(t=> headerRow.appendChild(Object.assign(document.createElement('th'), { textContent: t })));
-  table.appendChild(headerRow);
-  h2h.teams.forEach(r=>{
-    const tr = document.createElement('tr');
-    const tdLabel = document.createElement('td');
-    const span = document.createElement('span'); span.textContent = r; span.className = 'team-label team-' + r.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    tdLabel.appendChild(span);
-    tr.appendChild(tdLabel);
-    h2h.teams.forEach(c=>{
-      const d = h2h.map[r] && h2h.map[r][c] ? h2h.map[r][c] : {w:0,l:0,t:0};
-      const td = document.createElement('td');
-      td.textContent = (r===c)? '-' : `${d.w}-${d.l}` + (d.t?`-${d.t}`:'');
-      tr.appendChild(td);
-    });
-    table.appendChild(tr);
-  });
+function renderH2HTable(h2h){
+  const container = document.getElementById('h2h-area'); container.innerHTML='';
+  const table = document.createElement('table'); table.className='h2h-table';
+  const header = document.createElement('tr'); header.innerHTML = '<th></th>' + h2h.teams.map(function(t){return '<th>'+t+'</th>'}).join(''); table.appendChild(header);
+  h2h.teams.forEach(function(r){ const tr = document.createElement('tr'); tr.innerHTML = '<td><span class="team-label">'+ r + '</span></td>' + h2h.teams.map(function(c){ return '<td>' + (r===c?'-': (h2h.map[r] && h2h.map[r][c]? (h2h.map[r][c].w + '-' + h2h.map[r][c].l + (h2h.map[r][c].t? '-' + h2h.map[r][c].t : '')) : '0-0')) + '</td>'; }).join(''); table.appendChild(tr); });
   container.appendChild(table);
 }
 
-function applyTeamColors() {
-  let style = document.getElementById('team-colors-style');
-  if(!style) { style = document.createElement('style'); style.id = 'team-colors-style'; document.head.appendChild(style); }
-  let css = '';
-  for(const name in TEAM_COLORS) { 
-    const color = TEAM_COLORS[name];
-    const cls = '.team-' + name.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    css += cls + " { background:" + color + "; color: white; padding:4px 8px; border-radius:4px; display:inline-block; }\n";
-  }
-  style.textContent = css;
-}
-
-function makeTeamSelect(options, selected) {
-  const sel = document.createElement('select'); sel.className = 'team-select';
-  const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.textContent='--'; sel.appendChild(emptyOpt);
-  options.forEach(t=>{ const o = document.createElement('option'); o.value = t; o.textContent = t; if(t===selected) o.selected=true; sel.appendChild(o); });
-  return sel;
-}
-function makeScoreInput(value) { const inp = document.createElement('input'); inp.type='number'; inp.min=0; inp.className='score-input'; inp.value = (value!==undefined && value!==null)?value:''; return inp; }
-
-function buildBracketUI(standings, seasonName) {
-  const area = document.getElementById('bracket-area');
-  area.innerHTML = '';
+function renderBracket(standings, seasonName, rows){
+  const area = document.getElementById('bracket-area'); area.innerHTML='';
   const year = parseInt(seasonName) || 0;
-  const isEightEra = year >= 2022;
+  const isEight = year >= 2022;
   const teams = standings.map(s=>s.team);
   const storageKey = 'bracket-' + seasonName;
-  const initial = JSON.parse(localStorage.getItem(storageKey) || 'null') || {};
+  const initial = JSON.parse(localStorage.getItem(storageKey)||'null') || null;
+  const wrap = document.createElement('div'); wrap.className='bracket-wrap';
 
-  function resetToSeeds() { localStorage.removeItem(storageKey); buildBracketUI(standings, seasonName); }
-
-  function attachReset() { document.getElementById('reset-bracket').onclick = resetToSeeds; }
-
-  function createCol(title, matches) {
-    const col = document.createElement('div'); col.className='bracket-col';
-    col.innerHTML = '<h3>' + title + '</h3>';
-    matches.forEach(m=> col.appendChild(m));
-    return col;
+  function rowDiv(aSelect,aScore,bSelect,bScore){
+    const d=document.createElement('div'); d.className='match-row'; d.appendChild(aSelect); d.appendChild(aScore); d.appendChild(document.createTextNode(' vs ')); d.appendChild(bSelect); d.appendChild(bScore); return d;
   }
 
-  // helper to build a match row from selectors/inputs
-  function matchRow(selA, inpA, selB, inpB) {
-    const div = document.createElement('div'); div.className='match-row';
-    div.appendChild(selA); div.appendChild(inpA); div.appendChild(document.createTextNode(' vs ')); div.appendChild(selB); div.appendChild(inpB);
-    return div;
-  }
-
-  // 6-team era
-  if(!isEightEra) {
-    const top4 = teams.slice(0,4);
-    const sf1 = initial.sf1 || {a: top4[0]||'', b: top4[3]||'', ascore:'', bscore:'', winner:''};
-    const sf2 = initial.sf2 || {a: top4[1]||'', b: top4[2]||'', ascore:'', bscore:'', winner:''};
-    const final = initial.final || {a:'', b:'', ascore:'', bscore:'', winner:''};
-    const third = initial.third || {a:'', b:'', ascore:'', bscore:'', winner:''};
-    const loser = initial.loser || {a:teams[4]||'', b:teams[5]||'', ascore:'', bscore:'', winner:''};
-
-    const sf1a = makeTeamSelect(teams, sf1.a); const sf1as = makeScoreInput(sf1.ascore);
-    const sf1b = makeTeamSelect(teams, sf1.b); const sf1bs = makeScoreInput(sf1.bscore);
-    const sf2a = makeTeamSelect(teams, sf2.a); const sf2as = makeScoreInput(sf2.ascore);
-    const sf2b = makeTeamSelect(teams, sf2.b); const sf2bs = makeScoreInput(sf2.bscore);
-    const finA = makeTeamSelect(teams, final.a); const finAS = makeScoreInput(final.ascore);
-    const finB = makeTeamSelect(teams, final.b); const finBS = makeScoreInput(final.bscore);
-    const tA = makeTeamSelect(teams, third.a); const tAs = makeScoreInput(third.ascore);
-    const tB = makeTeamSelect(teams, third.b); const tBs = makeScoreInput(third.bscore);
-    const lbA = makeTeamSelect(teams, loser.a); const lbAs = makeScoreInput(loser.ascore);
-    const lbB = makeTeamSelect(teams, loser.b); const lbBs = makeScoreInput(loser.bscore);
-
-    const colSemis = createCol('Semifinals', [matchRow(sf1a,sf1as,sf1b,sf1bs), matchRow(sf2a,sf2as,sf2b,sf2bs)]);
-    const colFinal = createCol('Final', [matchRow(finA,finAS,finB,finBS)]);
-    const colThird = createCol('3rd Place', [matchRow(tA,tAs,tB,tBs)]);
-    const colLoser = createCol('Loser Bowl', [matchRow(lbA,lbAs,lbB,lbBs)]);
-
-    const wrap = document.createElement('div'); wrap.className='bracket-wrap';
-    wrap.appendChild(colSemis); wrap.appendChild(colFinal); wrap.appendChild(colThird); wrap.appendChild(colLoser);
+  if(!isEight){
+    const seed = teams.slice(0,6);
+    const sf1 = (initial && initial.sf1) || {a:seed[0]||'', b:seed[3]||'', ascore:'', bscore:''};
+    const sf2 = (initial && initial.sf2) || {a:seed[1]||'', b:seed[2]||'', ascore:'', bscore:''};
+    const final = (initial && initial.final) || {a:'', b:'', ascore:'', bscore:''};
+    const third = (initial && initial.third) || {a:'', b:'', ascore:'', bscore:''};
+    const loser = (initial && initial.loser) || {a:seed[4]||'', b:seed[5]||'', ascore:'', bscore:''};
+    function make(selVal){ const s=document.createElement('select'); s.className='team-select'; const empty = document.createElement('option'); empty.value=''; empty.textContent='--'; s.appendChild(empty); seed.forEach(function(t){ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===selVal) o.selected=true; s.appendChild(o); }); return s; }
+    function score(v){ const i=document.createElement('input'); i.type='number'; i.className='score-input'; i.value = v||''; return i; }
+    const sf1a = make(sf1.a), sf1as = score(sf1.ascore), sf1b = make(sf1.b), sf1bs = score(sf1.bscore);
+    const sf2a = make(sf2.a), sf2as = score(sf2.ascore), sf2b = make(sf2.b), sf2bs = score(sf2.bscore);
+    const finA = make(final.a), finAS = score(final.ascore), finB = make(final.b), finBS = score(final.bscore);
+    const tA = make(third.a), tAs = score(third.ascore), tB = make(third.b), tBs = score(third.bscore);
+    const lbA = make(loser.a), lbAs = score(loser.ascore), lbB = make(loser.b), lbBs = score(loser.bscore);
+    const colS = document.createElement('div'); colS.className='bracket-col'; colS.innerHTML='<h3>Semifinals</h3>'; colS.appendChild(rowDiv(sf1a,sf1as,sf1b,sf1bs)); colS.appendChild(rowDiv(sf2a,sf2as,sf2b,sf2bs));
+    const colF = document.createElement('div'); colF.className='bracket-col'; colF.innerHTML='<h3>Final</h3>'; colF.appendChild(rowDiv(finA,finAS,finB,finBS));
+    const col3 = document.createElement('div'); col3.className='bracket-col'; col3.innerHTML='<h3>3rd Place</h3>'; col3.appendChild(rowDiv(tA,tAs,tB,tBs));
+    const colL = document.createElement('div'); colL.className='bracket-col'; colL.innerHTML='<h3>Loser Bowl</h3>'; colL.appendChild(rowDiv(lbA,lbAs,lbB,lbBs));
+    wrap.appendChild(colS); wrap.appendChild(colF); wrap.appendChild(col3); wrap.appendChild(colL);
     area.appendChild(wrap);
-
-    function resolve() {
-      const sf1AS = parseInt(sf1as.value)||0; const sf1BS = parseInt(sf1bs.value)||0;
-      const sf2AS = parseInt(sf2as.value)||0; const sf2BS = parseInt(sf2bs.value)||0;
-      const sf1Win = (sf1AS!==sf1BS)?(sf1AS>sf1BS? sf1a.value : sf1b.value) : '';
-      const sf2Win = (sf2AS!==sf2BS)?(sf2AS>sf2BS? sf2a.value : sf2b.value) : '';
-      if(finA.value !== sf1Win) finA.value = sf1Win || finA.value;
-      if(finB.value !== sf2Win) finB.value = sf2Win || finB.value;
-      const fAS = parseInt(finAS.value)||0; const fBS = parseInt(finBS.value)||0; const finalWin = (fAS!==fBS)?(fAS>fBS?finA.value:finB.value):'';
-      const loser1 = sf1Win===sf1a.value? sf1b.value : sf1a.value;
-      const loser2 = sf2Win===sf2a.value? sf2b.value : sf2a.value;
-      if(tA.value !== loser1) tA.value = loser1 || tA.value;
-      if(tB.value !== loser2) tB.value = loser2 || tB.value;
-      const tAS = parseInt(tAs.value)||0; const tBS = parseInt(tBs.value)||0; const thirdWin = (tAS!==tBS)?(tAS>tBS? tA.value : tB.value):'';
-      const lbAS = parseInt(lbAs.value)||0; const lbBS = parseInt(lbBs.value)||0; const lbWin = (lbAS!==lbBS)?(lbAS>lbBS? lbA.value : lbB.value):'';
-      const state = {sf1:{a:sf1a.value,b:sf1b.value,ascore:sf1as.value,bscore:sf1bs.value,winner:sf1Win},
-                     sf2:{a:sf2a.value,b:sf2b.value,ascore:sf2as.value,bscore:sf2bs.value,winner:sf2Win},
-                     final:{a:finA.value,b:finB.value,ascore:finAS.value,bscore:finBS.value,winner:finalWin},
-                     third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value,winner:thirdWin},
-                     loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value,winner:lbWin}};
+    function resolve(){
+      const s1 = parseInt(sf1as.value)||0, s2 = parseInt(sf1bs.value)||0; const sf1win = (s1!==s2)?(s1>s2?sf1a.value:sf1b.value):'';
+      const s3 = parseInt(sf2as.value)||0, s4 = parseInt(sf2bs.value)||0; const sf2win = (s3!==s4)?(s3>s4?sf2a.value:sf2b.value):'';
+      if(finA.value !== sf1win) finA.value = sf1win || finA.value; if(finB.value !== sf2win) finB.value = sf2win || finB.value;
+      const fA = parseInt(finAS.value)||0, fB = parseInt(finBS.value)||0; const finalWin = (fA!==fB)?(fA>fB?finA.value:finB.value):'';
+      const loser1 = sf1win===sf1a.value? sf1b.value : sf1a.value; const loser2 = sf2win===sf2a.value? sf2b.value : sf2a.value;
+      if(tA.value !== loser1) tA.value = loser1 || tA.value; if(tB.value !== loser2) tB.value = loser2 || tB.value;
+      const tAsVal = parseInt(tAs.value)||0, tBsVal = parseInt(tBs.value)||0; const thirdWin = (tAsVal!==tBsVal)?(tAsVal>tBsVal? tA.value : tB.value):'';
+      const lbAsVal = parseInt(lbAs.value)||0, lbBsVal = parseInt(lbBs.value)||0; const lbWin = (lbAsVal!==lbBsVal)?(lbAsVal>lbBsVal? lbA.value : lbB.value):'';
+      const state = {sf1:{a:sf1a.value,b:sf1b.value,ascore:sf1as.value,bscore:sf1bs.value}, sf2:{a:sf2a.value,b:sf2b.value,ascore:sf2as.value,bscore:sf2bs.value}, final:{a:finA.value,b:finB.value,ascore:finAS.value,bscore:finBS.value}, third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value}, loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value}}};
       localStorage.setItem(storageKey, JSON.stringify(state));
-      [sf1a,sf1b,sf2a,sf2b,finA,finB,tA,tB,lbA,lbB].forEach(el=> el.style.fontWeight='normal');
-      if(sf1Win){ if(sf1a.value===sf1Win) sf1a.style.fontWeight='700'; else sf1b.style.fontWeight='700'; }
-      if(sf2Win){ if(sf2a.value===sf2Win) sf2a.style.fontWeight='700'; else sf2b.style.fontWeight='700'; }
-      if(finalWin){ if(finA.value===finalWin) finA.style.fontWeight='700'; else finB.style.fontWeight='700'; }
-      if(thirdWin){ if(tA.value===thirdWin) tA.style.fontWeight='700'; else tB.style.fontWeight='700'; }
-      if(lbWin){ if(lbA.value===lbWin) lbA.style.fontWeight='700'; else lbB.style.fontWeight='700'; }
     }
-
     [sf1a,sf1as,sf1b,sf1bs,sf2a,sf2as,sf2b,sf2bs,finA,finAS,finB,finBS,tA,tAs,tB,tBs,lbA,lbAs,lbB,lbBs].forEach(el=> el.addEventListener('input', resolve));
-    attachReset();
     resolve();
     return;
-  }
-
-  // 2022+ era: top6 with seeds 1&2 bye (quarter: 3v6 and 4v5)
-  if(isEightEra) {
-    const top = teams.slice(0,8);
-    const q1 = initial.q1 || {a: top[2]||'', b: top[5]||'', ascore:'', bscore:'', winner:''};
-    const q2 = initial.q2 || {a: top[3]||'', b: top[4]||'', ascore:'', bscore:'', winner:''};
-    const s1 = initial.s1 || {a: top[0]||'', b:'', ascore:'', bscore:'', winner:''};
-    const s2 = initial.s2 || {a: top[1]||'', b:'', ascore:'', bscore:'', winner:''};
-    const f = initial.f || {a:'', b:'', ascore:'', bscore:'', winner:''};
-    const third = initial.third || {a:'', b:'', ascore:'', bscore:'', winner:''};
-    const fifth = initial.fifth || {a:'', b:'', ascore:'', bscore:'', winner:''};
-    const loser = initial.loser || {a: teams[6]||'', b: teams[7]||'', ascore:'', bscore:'', winner:''};
-
-    const q1a = makeTeamSelect(teams, q1.a); const q1as = makeScoreInput(q1.ascore); const q1b = makeTeamSelect(teams, q1.b); const q1bs = makeScoreInput(q1.bscore);
-    const q2a = makeTeamSelect(teams, q2.a); const q2as = makeScoreInput(q2.ascore); const q2b = makeTeamSelect(teams, q2.b); const q2bs = makeScoreInput(q2.bscore);
-    const s1a = makeTeamSelect(teams, s1.a); const s1as = makeScoreInput(s1.ascore); const s1b = makeTeamSelect(teams, s1.b); const s1bs = makeScoreInput(s1.bscore);
-    const s2a = makeTeamSelect(teams, s2.a); const s2as = makeScoreInput(s2.ascore); const s2b = makeTeamSelect(teams, s2.b); const s2bs = makeScoreInput(s2.bscore);
-    const fA = makeTeamSelect(teams, f.a); const fAS = makeScoreInput(f.ascore); const fB = makeTeamSelect(teams, f.b); const fBS = makeScoreInput(f.bscore);
-    const tA = makeTeamSelect(teams, third.a); const tAs = makeScoreInput(third.ascore); const tB = makeTeamSelect(teams, third.b); const tBs = makeScoreInput(third.bscore);
-    const fvA = makeTeamSelect(teams, fifth.a); const fvAs = makeScoreInput(fifth.ascore); const fvB = makeTeamSelect(teams, fifth.b); const fvBs = makeScoreInput(fifth.bscore);
-    const lbA = makeTeamSelect(teams, loser.a); const lbAs = makeScoreInput(loser.ascore); const lbB = makeTeamSelect(teams, loser.b); const lbBs = makeScoreInput(loser.bscore);
-
-    const colQ = createCol('Quarterfinals', [matchRow(q1a,q1as,q1b,q1bs), matchRow(q2a,q2as,q2b,q2bs)]);
-    const colS = createCol('Semifinals', [matchRow(s1a,s1as,s1b,s1bs), matchRow(s2a,s2as,s2b,s2bs)]);
-    const colF = createCol('Final', [matchRow(fA,fAS,fB,fBS)]);
-    const colThird = createCol('3rd Place', [matchRow(tA,tAs,tB,tBs)]);
-    const colFifth = createCol('5th Place', [matchRow(fvA,fvAs,fvB,fvBs)]);
-    const colLoser = createCol('Loser Bowl', [matchRow(lbA,lbAs,lbB,lbBs)]);
-
-    const wrap = document.createElement('div'); wrap.className='bracket-wrap';
-    wrap.appendChild(colQ); wrap.appendChild(colS); wrap.appendChild(colF); wrap.appendChild(colThird); wrap.appendChild(colFifth); wrap.appendChild(colLoser);
+  } else {
+    const seed = teams.slice(0,8);
+    const q1 = (initial && initial.q1) || {a:seed[2]||'', b:seed[5]||'', ascore:'', bscore:''};
+    const q2 = (initial && initial.q2) || {a:seed[3]||'', b:seed[4]||'', ascore:'', bscore:''};
+    const s1 = (initial && initial.s1) || {a:seed[0]||'', b:'', ascore:'', bscore:''};
+    const s2 = (initial && initial.s2) || {a:seed[1]||'', b:'', ascore:'', bscore:''};
+    const f = (initial && initial.f) || {a:'', b:'', ascore:'', bscore:''};
+    const third = (initial && initial.third) || {a:'', b:'', ascore:'', bscore:''};
+    const fifth = (initial && initial.fifth) || {a:'', b:'', ascore:'', bscore:''};
+    const loser = (initial && initial.loser) || {a:seed[6]||'', b:seed[7]||'', ascore:'', bscore:''};
+    function makeAll(selVal){ const s=document.createElement('select'); s.className='team-select'; const empty=document.createElement('option'); empty.value=''; empty.textContent='--'; s.appendChild(empty); seed.forEach(function(t){ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===selVal) o.selected=true; s.appendChild(o); }); return s; }
+    const q1a = makeAll(q1.a), q1as = document.createElement('input'); q1as.type='number'; q1as.className='score-input'; q1as.value=q1.ascore||'';
+    const q1b = makeAll(q1.b), q1bs = document.createElement('input'); q1bs.type='number'; q1bs.className='score-input'; q1bs.value=q1.bscore||'';
+    const q2a = makeAll(q2.a), q2as = document.createElement('input'); q2as.type='number'; q2as.className='score-input'; q2as.value=q2.ascore||'';
+    const q2b = makeAll(q2.b), q2bs = document.createElement('input'); q2bs.type='number'; q2bs.className='score-input'; q2bs.value=q2.bscore||'';
+    const s1a = makeAll(s1.a), s1as = document.createElement('input'); s1as.type='number'; s1as.className='score-input'; s1as.value=s1.ascore||'';
+    const s1b = makeAll(s1.b), s1bs = document.createElement('input'); s1bs.type='number'; s1bs.className='score-input'; s1bs.value=s1.bscore||'';
+    const s2a = makeAll(s2.a), s2as = document.createElement('input'); s2as.type='number'; s2as.className='score-input'; s2as.value=s2.ascore||'';
+    const s2b = makeAll(s2.b), s2bs = document.createElement('input'); s2bs.type='number'; s2bs.className='score-input'; s2bs.value=s2.bscore||'';
+    const fA = makeAll(f.a), fAS = document.createElement('input'); fAS.type='number'; fAS.className='score-input'; fAS.value=f.ascore||'';
+    const fB = makeAll(f.b), fBS = document.createElement('input'); fBS.type='number'; fBS.className='score-input'; fBS.value=f.bscore||'';
+    const tA = makeAll(third.a), tAs = document.createElement('input'); tAs.type='number'; tAs.className='score-input'; tAs.value=third.ascore||'';
+    const tB = makeAll(third.b), tBs = document.createElement('input'); tBs.type='number'; tBs.className='score-input'; tBs.value=third.bscore||'';
+    const fvA = makeAll(fifth.a), fvAs = document.createElement('input'); fvAs.type='number'; fvAs.className='score-input'; fvAs.value=fifth.ascore||'';
+    const fvB = makeAll(fifth.b), fvBs = document.createElement('input'); fvBs.type='number'; fvBs.className='score-input'; fvBs.value=fifth.bscore||'';
+    const lbA = makeAll(loser.a), lbAs = document.createElement('input'); lbAs.type='number'; lbAs.className='score-input'; lbAs.value=loser.ascore||'';
+    const lbB = makeAll(loser.b), lbBs = document.createElement('input'); lbBs.type='number'; lbBs.className='score-input'; lbBs.value=loser.bscore||'';
+    const colQ = document.createElement('div'); colQ.className='bracket-col'; colQ.innerHTML='<h3>Quarterfinals</h3>'; colQ.appendChild(rowDiv(q1a,q1as,q1b,q1bs)); colQ.appendChild(rowDiv(q2a,q2as,q2b,q2bs));
+    const colS = document.createElement('div'); colS.className='bracket-col'; colS.innerHTML='<h3>Semifinals</h3>'; colS.appendChild(rowDiv(s1a,s1as,s1b,s1bs)); colS.appendChild(rowDiv(s2a,s2as,s2b,s2bs));
+    const colF = document.createElement('div'); colF.className='bracket-col'; colF.innerHTML='<h3>Final</h3>'; colF.appendChild(rowDiv(fA,fAS,fB,fBS));
+    const col3 = document.createElement('div'); col3.className='bracket-col'; col3.innerHTML='<h3>3rd Place</h3>'; col3.appendChild(rowDiv(tA,tAs,tB,tBs));
+    const col5 = document.createElement('div'); col5.className='bracket-col'; col5.innerHTML='<h3>5th Place</h3>'; col5.appendChild(rowDiv(fvA,fvAs,fvB,fvBs));
+    const colL = document.createElement('div'); colL.className='bracket-col'; colL.innerHTML='<h3>Loser Bowl</h3>'; colL.appendChild(rowDiv(lbA,lbAs,lbB,lbBs));
+    wrap.appendChild(colQ); wrap.appendChild(colS); wrap.appendChild(colF); wrap.appendChild(col3); wrap.appendChild(col5); wrap.appendChild(colL);
     area.appendChild(wrap);
-
-    function resolve() {
-      const q1AS = parseInt(q1as.value)||0; const q1BS = parseInt(q1bs.value)||0; const q1Win = (q1AS!==q1BS)?(q1AS>q1BS?q1a.value:q1b.value):'';
-      const q2AS = parseInt(q2as.value)||0; const q2BS = parseInt(q2bs.value)||0; const q2Win = (q2AS!==q2BS)?(q2AS>q2BS?q2a.value:q2b.value):'';
-      // semis: s1 = seed1 vs q2Win, s2 = seed2 vs q1Win
-      if(s1a.value !== (teams[0]||'')) s1a.value = teams[0]||s1a.value;
-      if(s2a.value !== (teams[1]||'')) s2a.value = teams[1]||s2a.value;
-      if(s1b.value !== q2Win) s1b.value = q2Win || s1b.value;
-      if(s2b.value !== q1Win) s2b.value = q1Win || s2b.value;
-      const s1AS = parseInt(s1as.value)||0; const s1BS = parseInt(s1bs.value)||0; const s1Win = (s1AS!==s1BS)?(s1AS>s1BS?s1a.value:s1b.value):'';
-      const s2AS = parseInt(s2as.value)||0; const s2BS = parseInt(s2bs.value)||0; const s2Win = (s2AS!==s2BS)?(s2AS>s2BS?s2a.value:s2b.value):'';
-      if(fA.value !== s1Win) fA.value = s1Win || fA.value;
-      if(fB.value !== s2Win) fB.value = s2Win || fB.value;
-      const semiLoser1 = s1Win===s1a.value? s1b.value : s1a.value;
-      const semiLoser2 = s2Win===s2a.value? s2b.value : s2a.value;
-      if(tA.value !== semiLoser1) tA.value = semiLoser1 || tA.value;
-      if(tB.value !== semiLoser2) tB.value = semiLoser2 || tB.value;
-      const q1Loser = q1a.value === q1Win ? q1b.value : q1a.value;
-      const q2Loser = q2a.value === q2Win ? q2b.value : q2a.value;
-      if(fvA.value !== q1Loser) fvA.value = q1Loser || fvA.value;
-      if(fvB.value !== q2Loser) fvB.value = q2Loser || fvB.value;
-      const finalWin = (parseInt(fAS.value||0)!==parseInt(fBS.value||0))? (parseInt(fAS.value||0) > parseInt(fBS.value||0) ? fA.value : fB.value) : '';
-      const thirdWin = (parseInt(tAs.value)||0) !== (parseInt(tBs.value)||0) ? ((parseInt(tAs.value)||0) > (parseInt(tBs.value)||0) ? tA.value : tB.value) : '';
-      const fifthWin = (parseInt(fvAs.value)||0) !== (parseInt(fvBs.value)||0) ? ((parseInt(fvAs.value)||0) > (parseInt(fvBs.value)||0) ? fvA.value : fvB.value) : '';
-      const lbWin = (parseInt(lbAs.value)||0) !== (parseInt(lbBs.value)||0) ? ((parseInt(lbAs.value)||0) > (parseInt(lbBs.value)||0) ? lbA.value : lbB.value) : '';
-      const state = {q1:{a:q1a.value,b:q1b.value,ascore:q1as.value,bscore:q1bs.value,winner:q1Win}, q2:{a:q2a.value,b:q2b.value,ascore:q2as.value,bscore:q2bs.value,winner:q2Win}, s1:{a:s1a.value,b:s1b.value,ascore:s1as.value,bscore:s1bs.value,winner:s1Win||''}, s2:{a:s2a.value,b:s2b.value,ascore:s2as.value,bscore:s2bs.value,winner:s2Win||''}, final:{a:fA.value,b:fB.value,ascore:fAS.value,bscore:fBS.value,winner:finalWin}, third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value,winner:thirdWin}, fifth:{a:fvA.value,b:fvB.value,ascore:fvAs.value,bscore:fvBs.value,winner:fifthWin}, loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value,winner:lbWin}};
+    function resolve(){
+      const q1A = parseInt(q1as.value)||0, q1Bv = parseInt(q1bs.value)||0; const q1Win = (q1A!==q1Bv)?(q1A>q1Bv?q1a.value:q1b.value):'';
+      const q2A = parseInt(q2as.value)||0, q2Bv = parseInt(q2bs.value)||0; const q2Win = (q2A!==q2Bv)?(q2A>q2Bv?q2a.value:q2b.value):'';
+      if(s1a.value !== seed[0]) s1a.value = seed[0]||s1a.value; if(s2a.value !== seed[1]) s2a.value = seed[1]||s2a.value;
+      if(s1b.value !== q2Win) s1b.value = q2Win || s1b.value; if(s2b.value !== q1Win) s2b.value = q1Win || s2b.value;
+      const s1Av = parseInt(s1as.value)||0, s1Bv = parseInt(s1bs.value)||0; const s1Win = (s1Av!==s1Bv)?(s1Av>s1Bv?s1a.value:s1b.value):'';
+      const s2Av = parseInt(s2as.value)||0, s2Bv = parseInt(s2bs.value)||0; const s2Win = (s2Av!==s2Bv)?(s2Av>s2Bv?s2a.value:s2b.value):'';
+      if(fA.value !== s1Win) fA.value = s1Win || fA.value; if(fB.value !== s2Win) fB.value = s2Win || fB.value;
+      const finalWin = (parseInt(fAS.value)||0) !== (parseInt(fBS.value)||0) ? ((parseInt(fAS.value)||0) > (parseInt(fBS.value)||0) ? fA.value : fB.value) : '';
+      const semiLoser1 = s1Win===s1a.value? s1b.value : s1a.value; const semiLoser2 = s2Win===s2a.value? s2b.value : s2a.value;
+      if(tA.value !== semiLoser1) tA.value = semiLoser1 || tA.value; if(tB.value !== semiLoser2) tB.value = semiLoser2 || tB.value;
+      const q1Loser = q1a.value === q1Win ? q1b.value : q1a.value; const q2Loser = q2a.value === q2Win ? q2b.value : q2a.value;
+      if(fvA.value !== q1Loser) fvA.value = q1Loser || fvA.value; if(fvB.value !== q2Loser) fvB.value = q2Loser || fvB.value;
+      const state = {q1:{a:q1a.value,b:q1b.value,ascore:q1as.value,bscore:q1bs.value}, q2:{a:q2a.value,b:q2b.value,ascore:q2as.value,bscore:q2bs.value}, s1:{a:s1a.value,b:s1b.value,ascore:s1as.value,bscore:s1bs.value}, s2:{a:s2a.value,b:s2b.value,ascore:s2as.value,bscore:s2bs.value}, final:{a:fA.value,b:fB.value,ascore:fAS.value,bscore:fBS.value}, third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value}, fifth:{a:fvA.value,b:fvB.value,ascore:fvAs.value,bscore:fvBs.value}, loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value}}};
       localStorage.setItem(storageKey, JSON.stringify(state));
-      [q1a,q1b,q2a,q2b,s1a,s1b,s2a,s2b,fA,fB,tA,tB,fvA,fvB,lbA,lbB].forEach(el=> el.style.fontWeight='normal');
-      if(q1Win){ if(q1a.value===q1Win) q1a.style.fontWeight='700'; else q1b.style.fontWeight='700'; }
-      if(q2Win){ if(q2a.value===q2Win) q2a.style.fontWeight='700'; else q2b.style.fontWeight='700'; }
-      if(s1Win){ if(s1a.value===s1Win) s1a.style.fontWeight='700'; else s1b.style.fontWeight='700'; }
-      if(s2Win){ if(s2a.value===s2Win) s2a.style.fontWeight='700'; else s2b.style.fontWeight='700'; }
-      if(finalWin){ if(fA.value===finalWin) fA.style.fontWeight='700'; else fB.style.fontWeight='700'; }
     }
-
     [q1a,q1as,q1b,q1bs,q2a,q2as,q2b,q2bs,s1a,s1as,s1b,s1bs,s2a,s2as,s2b,s2bs,fA,fAS,fB,fBS,tA,tAs,tB,tBs,fvA,fvAs,fvB,fvBs,lbA,lbAs,lbB,lbBs].forEach(el=> el.addEventListener('input', resolve));
-    attachReset();
     resolve();
     return;
   }
 }
 
-async function loadSeason(seasonName) {
-  try { document.getElementById('season-title').textContent = seasonName + ' season';
-    const rows = await fetchSheetCSV(seasonName);
-    const standings = extractStandings(rows);
-    if(standings.length===0) document.getElementById('standings-area').textContent = 'No standings table found in sheet.';
-    else renderStandingsTable(standings);
-    const h2h = computeH2H(rows, standings.map(s=>s.team));
-    renderH2HGrid(h2h);
-    buildBracketUI(standings, seasonName);
-  } catch(err) { console.error(err); document.getElementById('standings-area').textContent = 'Error loading season.'; document.getElementById('h2h-area').textContent = ''; document.getElementById('bracket-area').textContent = ''; }
+function renderAllTime(sheets){
+  const years = Object.keys(sheets).filter(k=> k.toLowerCase()!=='all time');
+  const out = [];
+  years.forEach(y=>{ const rows = sheets[y] || []; const header = rows[0] ? rows[0].map(c=>String(c).toLowerCase()) : []; let finalCol = header.findIndex(h=>h.includes('final')); let found = ''; if(finalCol>=0){ for(let r=1;r<rows.length;r++) if(rows[r][finalCol] && String(rows[r][finalCol]).trim()!=='') found = rows[r][finalCol]; } else { const last = rows[rows.length-1] || []; found = last.slice(-1)[0] || ''; } const m = (String(found)||'').match(/(.*?)[\s:\-–]+([0-9]{1,3})/); const champ = m ? m[1].trim() : (found||''); out.push({year:y, champion: champ}); });
+  const el = document.getElementById('alltime-area'); el.innerHTML=''; const tbl = document.createElement('table'); tbl.innerHTML = '<tr><th>Year</th><th>Champion</th></tr>' + out.map(o=>'<tr><td>'+o.year+'</td><td>'+o.champion+'</td></tr>').join(''); el.appendChild(tbl);
 }
 
-async function loadAllTime() {
-  try {
-    document.getElementById('champions-area').textContent = 'Loading...';
-    const champRows = [];
-    for(const s of SEASONS) {
-      try { const rows = await fetchSheetCSV(s);
-            const header = rows[0].map(h=>h.toLowerCase());
-            let finalCol = header.findIndex(h=>h.includes('final'));
-            let found = '';
-            if(finalCol>=0) { for(let r=1;r<rows.length;r++) { if(rows[r][finalCol] && rows[r][finalCol].trim()!=='') { found = rows[r][finalCol].trim(); } } }
-            else { const lastRow = rows[rows.length-1] || []; found = lastRow.slice(-1)[0] || ''; }
-            let champ=''; let runner=''; let finalScore='';
-            const m = (found||'').match(/(.*?)[\s:\-–]+([0-9]{1,3})/);
-            if(m) { champ = m[1].trim(); finalScore = m[2]; } else champ = found;
-            champRows.push({season:s, champion:champ||'', runner: runner||'', score: finalScore||''});
-      } catch(e) { champRows.push({season:s, champion:'', runner:'', score:''}); }
-    }
-    const tbl = document.createElement('table');
-    tbl.innerHTML = '<tr><th>Year</th><th>Champion</th><th>Runner-Up</th><th>Final Score</th></tr>' + champRows.map(r=>`<tr><td>${r.season}</td><td>${r.champion}</td><td>${r.runner}</td><td>${r.score}</td></tr>`).join('');
-    const el = document.getElementById('champions-area'); el.innerHTML=''; el.appendChild(tbl);
-  } catch(err) { console.error(err); document.getElementById('champions-area').textContent = 'Error loading champions.'; }
-}
-
-function init() {
-  const container = document.getElementById('season-buttons');
-  const seasons = ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "All Time"];
-  seasons.forEach(s=>{
-    const btn = document.createElement('button');
-    btn.textContent = s;
-    btn.className = 'season-btn';
-    btn.addEventListener('click', ()=> loadSeason(s));
-    container.appendChild(btn);
-  });
-  applyTeamColors();
-  loadAllTime();
-  loadSeason('All Time').catch(()=>{ loadSeason('2016'); });
+async function init(){
+  const sheets = await loadEmbeddedData();
+  const seasonNames = Object.keys(sheets);
+  const nav = document.getElementById('nav');
+  nav.innerHTML = seasonNames.map(function(s){ return '<button class="nav-btn" data-season="'+s+'">'+s+'</button>' }).join(' ');
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.addEventListener('click', async function(e){ const s = e.target.dataset.season; document.getElementById('season-title').textContent = s + ' season'; const rows = sheets[s] || []; const standings = extractStandings(rows); renderStandings(standings); const h2h = computeH2H(rows, standings.map(x=>x.team)); renderH2HTable(h2h); if(String(s).toLowerCase()!=='all time') renderBracket(standings, s, rows); else document.getElementById('bracket-area').innerHTML = ''; }) });
+  renderAllTime(sheets);
+  const first = seasonNames[0]; const btn = document.querySelector('button[data-season="'+first+'"]'); if(btn) btn.click();
+  document.getElementById('reset-bracket').addEventListener('click', function(){ const s = document.getElementById('season-title').textContent.replace(' season',''); localStorage.removeItem('bracket-' + s); const rows = sheets[s] || []; const standings = extractStandings(rows); renderBracket(standings, s, rows); });
 }
 
 document.addEventListener('DOMContentLoaded', init);
