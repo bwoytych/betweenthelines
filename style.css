@@ -1,53 +1,39 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #f4f4f9;
-  color: #333;
-}
-header {
-  background: #222;
-  color: white;
-  padding: 1rem;
-  text-align: center;
-}
-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-nav li {
-  margin: 0.3rem;
-}
-nav button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 5px;
-  background: #0077cc;
-  color: white;
-  cursor: pointer;
-}
-nav button:hover {
-  background: #005fa3;
-}
-main {
-  padding: 1rem;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  background: white;
-}
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-}
-th {
-  background: #0077cc;
-  color: white;
+
+/* Basic layout */
+:root{--max-width:1100px}
+body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#eef2f6;color:#14202b}
+header{background:linear-gradient(90deg,#0f1724,#1f2a44);color:white;padding:18px 16px;text-align:center}
+header h1{margin:0;font-size:20px}
+header .subtitle{margin:6px 0 0;font-size:13px;color:#cfe3ff}
+.nav{background:#fff;padding:8px 12px;border-bottom:1px solid #e6eef8;display:flex;justify-content:center}
+#season-buttons{display:flex;flex-wrap:wrap;gap:8px;max-width:var(--max-width);margin:auto}
+.season-btn{background:#fff;border:1px solid #cfe0f9;padding:6px 10px;border-radius:6px;cursor:pointer;font-weight:600}
+.season-btn:hover{background:#eaf4ff}
+.container{max-width:var(--max-width);margin:18px auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px}
+.card{background:white;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(12,34,56,0.06);min-height:120px}
+.card h2{margin:0 0 10px;font-size:16px}
+.footer{padding:10px;text-align:center;color:#5b6b76;font-size:13px}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;background:white}
+th,td{border:1px solid #eef4fb;padding:8px;text-align:center}
+th{background:#0b63a8;color:white;font-weight:700}
+
+/* team label styles — dynamic CSS rules for team colors are injected at runtime */
+.team-label{padding:4px 8px;border-radius:6px;font-weight:700}
+
+/* H2H table narrower */
+.h2h-table th,.h2h-table td{padding:6px;font-size:13px}
+
+/* Bracket layout */
+.bracket-wrap{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.bracket-col{min-width:180px;background:#fafcff;padding:8px;border-radius:8px;border:1px solid #e7eef7}
+.match-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.match-row select.team-select{min-width:120px;padding:6px;border-radius:6px;border:1px solid #cfdff0;background:white}
+.match-row input.score-input{width:64px;padding:6px;border-radius:6px;border:1px solid #cfdff0}
+
+/* responsive */
+@media (max-width:900px){
+  .container{grid-template-columns:1fr; padding:0 8px}
+  .bracket-col{min-width:140px}
 }

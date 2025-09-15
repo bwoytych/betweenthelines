@@ -1,72 +1,442 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Between the Lines History</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Between the Lines — Fantasy History</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Between the Lines Fantasy History</h1>
-    <nav>
-      <ul id="nav"></ul>
-    </nav>
-  </header>
+<header>
+  <h1>Between the Lines — Fantasy History</h1>
+  <p class="subtitle">Standings, H2H, and interactive playoff bracket (editable)</p>
+</header>
 
-  <main>
-    <h2 id="sheet-title">Select a Season</h2>
-    <div id="table-container">Loading...</div>
-  </main>
+<nav class="nav">
+  <div id="season-buttons"></div>
+</nav>
 
-  <script>
-    const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
-    const SHEETS = ["2016","2017","2018","2019","2020","2021","2022","2023","2024","2025","All Time"];
+<main class="container">
+  <section class="card" id="standings-card">
+    <h2 id="season-title">Loading...</h2>
+    <div id="standings-area">Loading standings…</div>
+  </section>
 
-    // Build navbar
-    const nav = document.getElementById("nav");
-    SHEETS.forEach(name => {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.textContent = name;
-      btn.onclick = () => loadSheet(name);
-      li.appendChild(btn);
-      nav.appendChild(li);
-    });
+  <section class="card" id="h2h-card">
+    <h2>Head-to-Head</h2>
+    <div id="h2h-area">Loading head-to-head…</div>
+  </section>
 
-    async function loadSheet(sheetName) {
-      document.getElementById("sheet-title").textContent = sheetName;
-      document.getElementById("table-container").textContent = "Loading...";
+  <section class="card" id="bracket-card">
+    <h2>Playoff Bracket (editable)</h2>
+    <div id="bracket-area">Select a season to load bracket slots.</div>
+    <div style="margin-top:8px;"><button id="reset-bracket">Reset Bracket to Seeds</button></div>
+  </section>
 
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-      try {
-        const response = await fetch(url);
-        const text = await response.text();
-        renderCSV(text);
-      } catch (err) {
-        document.getElementById("table-container").textContent = "Error loading data.";
-        console.error(err);
+  <section class="card" id="alltime-card">
+    <h2>All-Time Champions</h2>
+    <div id="champions-area">Loading champions…</div>
+  </section>
+</main>
+
+<footer class="footer">Data source: your published Google Sheet. Bracket edits are stored locally in your browser (not in the sheet).</footer>
+
+<script>
+const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
+const SEASONS = ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "All Time"];
+
+// team color palette mapping (will be applied by class name)
+const TEAM_COLORS = {
+  "Carter": "#1E8449",
+  "Jake": "#2980B9",
+  "Jimmy": "#C0392B",
+  "Leahy": "#8E44AD",
+  "Swift": "#E67E22",
+  "Ben": "#7F8C8D",
+  "Gibby": "#16A085",
+  "Kyle": "#F1C40F",
+  "Collin": "#E91E63"
+};
+
+async function fetchSheetCSV(sheetName) {
+  const url = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(sheetName);
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("Network response not ok");
+  const txt = await res.text();
+  return parseCSV(txt);
+}
+
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=="");
+  for(const line of lines) {
+    const row = [];
+    let cur = ""; let inQuotes=false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch==='"') { inQuotes = !inQuotes; continue; }
+      if(ch===',' && !inQuotes) { row.push(cur); cur=""; continue; }
+      cur += ch;
+    }
+    row.push(cur);
+    rows.push(row.map(c=>c.trim()));
+  }
+  return rows;
+}
+
+function findStandingsHeader(rows) {
+  for(let r=0;r<Math.min(10, rows.length); r++) {
+    const row = rows[r].map(c=>c.toLowerCase());
+    if(row.some(c=>c.includes('team')) && row.some(c=>c.includes('win'))) return r;
+  }
+  return -1;
+}
+
+function extractStandings(rows) {
+  const hdr = findStandingsHeader(rows);
+  if(hdr>=0) {
+    const headers = rows[hdr].map(h=>h.toLowerCase());
+    const teamCol = headers.findIndex(h=>h.includes('team'));
+    const winsCol = headers.findIndex(h=>h.includes('win') && !h.includes('%'));
+    const lossCol = headers.findIndex(h=>h.includes('loss'));
+    const pfCol = headers.findIndex(h=>h.includes('points for')||h==='pf');
+    const paCol = headers.findIndex(h=>h.includes('points against')||h==='pa');
+    const pctCol = headers.findIndex(h=>h.includes('win %')||h.includes('win%')||h.includes('pct'));
+    const out=[];
+    for(let r=hdr+1;r<rows.length;r++) {
+      const t = rows[r][teamCol]||"";
+      if(!t || t.trim()==="") break;
+      out.push({team:t, wins:rows[r][winsCol]||"", losses:rows[r][lossCol]||"", pf:rows[r][pfCol]||"", pa:rows[r][paCol]||"", pct:rows[r][pctCol]||""});
+    }
+    return out;
+  } else {
+    const accum = {};
+    for(const r of rows) {
+      if(r.length<5) continue;
+      const ta = (r[1]||'').trim(), sa = parseFloat(r[2]), tb = (r[3]||'').trim(), sb = parseFloat(r[4]||'');
+      if(!ta || !tb) continue;
+      if(!accum[ta]) accum[ta] = {team:ta,w:0,l:0,pf:0,pa:0};
+      if(!accum[tb]) accum[tb] = {team:tb,w:0,l:0,pf:0,pa:0};
+      if(!isNaN(sa) && !isNaN(sb)) {
+        accum[ta].pf += sa; accum[ta].pa += sb;
+        accum[tb].pf += sb; accum[tb].pa += sa;
+        if(sa > sb) { accum[ta].w +=1; accum[tb].l +=1; }
+        else if(sa < sb) { accum[tb].w +=1; accum[ta].l +=1; }
       }
     }
+    return Object.values(accum).map(x=>({team:x.team,wins:x.w,losses:x.l,pf:x.pf,pa:x.pa,pct: (x.w+x.l)>0?Math.round((x.w/(x.w+x.l))*1000)/1000:''})).sort((a,b)=>b.wins-a.wins||b.pf-a.pf);
+  } 
+}
 
-    function renderCSV(csvText) {
-      const rows = csvText.trim().split("\n").map(r => r.split(","));
-      const table = document.createElement("table");
-
-      rows.forEach((row, i) => {
-        const tr = document.createElement("tr");
-        row.forEach(cell => {
-          const td = document.createElement(i === 0 ? "th" : "td");
-          td.textContent = cell;
-          tr.appendChild(td);
-        });
-        table.appendChild(tr);
-      });
-
-      const container = document.getElementById("table-container");
-      container.innerHTML = "";
-      container.appendChild(table);
+function computeH2H(rows, teamOrder) {
+  const map = {};
+  const teams = teamOrder.slice();
+  teams.forEach(t=> map[t] = {});
+  for(const r of rows) {
+    if(r.length<5) continue;
+    const ta = (r[1]||'').trim(), sa = parseFloat(r[2]), tb = (r[3]||'').trim(), sb = parseFloat(r[4]||'');
+    if(!ta || !tb) continue;
+    if(!map[ta]) map[ta] = {}; if(!map[tb]) map[tb] = {};
+    if(!map[ta][tb]) map[ta][tb] = {w:0,l:0,t:0};
+    if(!map[tb][ta]) map[tb][ta] = {w:0,l:0,t:0};
+    if(!isNaN(sa) && !isNaN(sb)) {
+      if(sa>sb) { map[ta][tb].w +=1; map[tb][ta].l +=1; }
+      else if(sa<sb) { map[tb][ta].w +=1; map[ta][tb].l +=1; }
+      else { map[ta][tb].t +=1; map[tb][ta].t +=1; }
     }
-  </script>
+  }
+  teams.forEach(a=> teams.forEach(b=> { if(!map[a][b]) map[a][b] = {w:0,l:0,t:0}; }));
+  return {teams, map};
+}
+
+function renderStandingsTable(standings) {
+  const container = document.getElementById('standings-area');
+  container.innerHTML = '';
+  const tbl = document.createElement('table');
+  tbl.className = 'standings-table';
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr>';
+  tbl.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  standings.forEach((s,i)=>{
+    const tr = document.createElement('tr');
+    const teamSpan = document.createElement('span');
+    teamSpan.textContent = s.team;
+    const cls = 'team-' + s.team.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    teamSpan.className = 'team-label ' + cls;
+    tr.appendChild(document.createElement('td')).textContent = i+1;
+    const tdTeam = document.createElement('td'); tdTeam.appendChild(teamSpan); tr.appendChild(tdTeam);
+    tr.appendChild(document.createElement('td')).textContent = s.wins || '';
+    tr.appendChild(document.createElement('td')).textContent = s.losses || '';
+    tr.appendChild(document.createElement('td')).textContent = s.pf || '';
+    tr.appendChild(document.createElement('td')).textContent = s.pa || '';
+    tr.appendChild(document.createElement('td')).textContent = s.pct || '';
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  container.appendChild(tbl);
+}
+
+function renderH2HGrid(h2h) {
+  const container = document.getElementById('h2h-area');
+  container.innerHTML = '';
+  const table = document.createElement('table');
+  table.className = 'h2h-table';
+  const headerRow = document.createElement('tr');
+  headerRow.appendChild(document.createElement('th'));
+  h2h.teams.forEach(t=> headerRow.appendChild(Object.assign(document.createElement('th'), { textContent: t })));
+  table.appendChild(headerRow);
+  h2h.teams.forEach(r=>{
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    const span = document.createElement('span'); span.textContent = r; span.className = 'team-label team-' + r.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    tdLabel.appendChild(span);
+    tr.appendChild(tdLabel);
+    h2h.teams.forEach(c=>{
+      const d = h2h.map[r] && h2h.map[r][c] ? h2h.map[r][c] : {w:0,l:0,t:0};
+      const td = document.createElement('td');
+      td.textContent = (r===c)? '-' : `${d.w}-${d.l}` + (d.t?`-${d.t}`:'');
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+  container.appendChild(table);
+}
+
+function applyTeamColors() {
+  let style = document.getElementById('team-colors-style');
+  if(!style) { style = document.createElement('style'); style.id = 'team-colors-style'; document.head.appendChild(style); }
+  let css = '';
+  for(const name in TEAM_COLORS) { 
+    const color = TEAM_COLORS[name];
+    const cls = '.team-' + name.split(' ')[0].toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    css += cls + " { background:" + color + "; color: white; padding:4px 8px; border-radius:4px; display:inline-block; }\n";
+  }
+  style.textContent = css;
+}
+
+function makeTeamSelect(options, selected) {
+  const sel = document.createElement('select'); sel.className = 'team-select';
+  const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.textContent='--'; sel.appendChild(emptyOpt);
+  options.forEach(t=>{ const o = document.createElement('option'); o.value = t; o.textContent = t; if(t===selected) o.selected=true; sel.appendChild(o); });
+  return sel;
+}
+function makeScoreInput(value) { const inp = document.createElement('input'); inp.type='number'; inp.min=0; inp.className='score-input'; inp.value = (value!==undefined && value!==null)?value:''; return inp; }
+
+function buildBracketUI(standings, seasonName) {
+  const area = document.getElementById('bracket-area');
+  area.innerHTML = '';
+  const year = parseInt(seasonName) || 0;
+  const isEightEra = year >= 2022;
+  const teams = standings.map(s=>s.team);
+  const storageKey = 'bracket-' + seasonName;
+  const initial = JSON.parse(localStorage.getItem(storageKey) || 'null') || {};
+
+  function resetToSeeds() { localStorage.removeItem(storageKey); buildBracketUI(standings, seasonName); }
+
+  function attachReset() { document.getElementById('reset-bracket').onclick = resetToSeeds; }
+
+  function createCol(title, matches) {
+    const col = document.createElement('div'); col.className='bracket-col';
+    col.innerHTML = '<h3>' + title + '</h3>';
+    matches.forEach(m=> col.appendChild(m));
+    return col;
+  }
+
+  // helper to build a match row from selectors/inputs
+  function matchRow(selA, inpA, selB, inpB) {
+    const div = document.createElement('div'); div.className='match-row';
+    div.appendChild(selA); div.appendChild(inpA); div.appendChild(document.createTextNode(' vs ')); div.appendChild(selB); div.appendChild(inpB);
+    return div;
+  }
+
+  // 6-team era
+  if(!isEightEra) {
+    const top4 = teams.slice(0,4);
+    const sf1 = initial.sf1 || {a: top4[0]||'', b: top4[3]||'', ascore:'', bscore:'', winner:''};
+    const sf2 = initial.sf2 || {a: top4[1]||'', b: top4[2]||'', ascore:'', bscore:'', winner:''};
+    const final = initial.final || {a:'', b:'', ascore:'', bscore:'', winner:''};
+    const third = initial.third || {a:'', b:'', ascore:'', bscore:'', winner:''};
+    const loser = initial.loser || {a:teams[4]||'', b:teams[5]||'', ascore:'', bscore:'', winner:''};
+
+    const sf1a = makeTeamSelect(teams, sf1.a); const sf1as = makeScoreInput(sf1.ascore);
+    const sf1b = makeTeamSelect(teams, sf1.b); const sf1bs = makeScoreInput(sf1.bscore);
+    const sf2a = makeTeamSelect(teams, sf2.a); const sf2as = makeScoreInput(sf2.ascore);
+    const sf2b = makeTeamSelect(teams, sf2.b); const sf2bs = makeScoreInput(sf2.bscore);
+    const finA = makeTeamSelect(teams, final.a); const finAS = makeScoreInput(final.ascore);
+    const finB = makeTeamSelect(teams, final.b); const finBS = makeScoreInput(final.bscore);
+    const tA = makeTeamSelect(teams, third.a); const tAs = makeScoreInput(third.ascore);
+    const tB = makeTeamSelect(teams, third.b); const tBs = makeScoreInput(third.bscore);
+    const lbA = makeTeamSelect(teams, loser.a); const lbAs = makeScoreInput(loser.ascore);
+    const lbB = makeTeamSelect(teams, loser.b); const lbBs = makeScoreInput(loser.bscore);
+
+    const colSemis = createCol('Semifinals', [matchRow(sf1a,sf1as,sf1b,sf1bs), matchRow(sf2a,sf2as,sf2b,sf2bs)]);
+    const colFinal = createCol('Final', [matchRow(finA,finAS,finB,finBS)]);
+    const colThird = createCol('3rd Place', [matchRow(tA,tAs,tB,tBs)]);
+    const colLoser = createCol('Loser Bowl', [matchRow(lbA,lbAs,lbB,lbBs)]);
+
+    const wrap = document.createElement('div'); wrap.className='bracket-wrap';
+    wrap.appendChild(colSemis); wrap.appendChild(colFinal); wrap.appendChild(colThird); wrap.appendChild(colLoser);
+    area.appendChild(wrap);
+
+    function resolve() {
+      const sf1AS = parseInt(sf1as.value)||0; const sf1BS = parseInt(sf1bs.value)||0;
+      const sf2AS = parseInt(sf2as.value)||0; const sf2BS = parseInt(sf2bs.value)||0;
+      const sf1Win = (sf1AS!==sf1BS)?(sf1AS>sf1BS? sf1a.value : sf1b.value) : '';
+      const sf2Win = (sf2AS!==sf2BS)?(sf2AS>sf2BS? sf2a.value : sf2b.value) : '';
+      if(finA.value !== sf1Win) finA.value = sf1Win || finA.value;
+      if(finB.value !== sf2Win) finB.value = sf2Win || finB.value;
+      const fAS = parseInt(finAS.value)||0; const fBS = parseInt(finBS.value)||0; const finalWin = (fAS!==fBS)?(fAS>fBS?finA.value:finB.value):'';
+      const loser1 = sf1Win===sf1a.value? sf1b.value : sf1a.value;
+      const loser2 = sf2Win===sf2a.value? sf2b.value : sf2a.value;
+      if(tA.value !== loser1) tA.value = loser1 || tA.value;
+      if(tB.value !== loser2) tB.value = loser2 || tB.value;
+      const tAS = parseInt(tAs.value)||0; const tBS = parseInt(tBs.value)||0; const thirdWin = (tAS!==tBS)?(tAS>tBS? tA.value : tB.value):'';
+      const lbAS = parseInt(lbAs.value)||0; const lbBS = parseInt(lbBs.value)||0; const lbWin = (lbAS!==lbBS)?(lbAS>lbBS? lbA.value : lbB.value):'';
+      const state = {sf1:{a:sf1a.value,b:sf1b.value,ascore:sf1as.value,bscore:sf1bs.value,winner:sf1Win},
+                     sf2:{a:sf2a.value,b:sf2b.value,ascore:sf2as.value,bscore:sf2bs.value,winner:sf2Win},
+                     final:{a:finA.value,b:finB.value,ascore:finAS.value,bscore:finBS.value,winner:finalWin},
+                     third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value,winner:thirdWin},
+                     loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value,winner:lbWin}};
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      [sf1a,sf1b,sf2a,sf2b,finA,finB,tA,tB,lbA,lbB].forEach(el=> el.style.fontWeight='normal');
+      if(sf1Win){ if(sf1a.value===sf1Win) sf1a.style.fontWeight='700'; else sf1b.style.fontWeight='700'; }
+      if(sf2Win){ if(sf2a.value===sf2Win) sf2a.style.fontWeight='700'; else sf2b.style.fontWeight='700'; }
+      if(finalWin){ if(finA.value===finalWin) finA.style.fontWeight='700'; else finB.style.fontWeight='700'; }
+      if(thirdWin){ if(tA.value===thirdWin) tA.style.fontWeight='700'; else tB.style.fontWeight='700'; }
+      if(lbWin){ if(lbA.value===lbWin) lbA.style.fontWeight='700'; else lbB.style.fontWeight='700'; }
+    }
+
+    [sf1a,sf1as,sf1b,sf1bs,sf2a,sf2as,sf2b,sf2bs,finA,finAS,finB,finBS,tA,tAs,tB,tBs,lbA,lbAs,lbB,lbBs].forEach(el=> el.addEventListener('input', resolve));
+    attachReset();
+    resolve();
+    return;
+  }
+
+  // 2022+ era: top6 with seeds 1&2 bye (quarter: 3v6 and 4v5)
+  if(isEightEra) {
+    const top = teams.slice(0,8);
+    const q1 = initial.q1 || {a: top[2]||'', b: top[5]||'', ascore:'', bscore:'', winner:''};
+    const q2 = initial.q2 || {a: top[3]||'', b: top[4]||'', ascore:'', bscore:'', winner:''};
+    const s1 = initial.s1 || {a: top[0]||'', b:'', ascore:'', bscore:'', winner:''};
+    const s2 = initial.s2 || {a: top[1]||'', b:'', ascore:'', bscore:'', winner:''};
+    const f = initial.f || {a:'', b:'', ascore:'', bscore:'', winner:''};
+    const third = initial.third || {a:'', b:'', ascore:'', bscore:'', winner:''};
+    const fifth = initial.fifth || {a:'', b:'', ascore:'', bscore:'', winner:''};
+    const loser = initial.loser || {a: teams[6]||'', b: teams[7]||'', ascore:'', bscore:'', winner:''};
+
+    const q1a = makeTeamSelect(teams, q1.a); const q1as = makeScoreInput(q1.ascore); const q1b = makeTeamSelect(teams, q1.b); const q1bs = makeScoreInput(q1.bscore);
+    const q2a = makeTeamSelect(teams, q2.a); const q2as = makeScoreInput(q2.ascore); const q2b = makeTeamSelect(teams, q2.b); const q2bs = makeScoreInput(q2.bscore);
+    const s1a = makeTeamSelect(teams, s1.a); const s1as = makeScoreInput(s1.ascore); const s1b = makeTeamSelect(teams, s1.b); const s1bs = makeScoreInput(s1.bscore);
+    const s2a = makeTeamSelect(teams, s2.a); const s2as = makeScoreInput(s2.ascore); const s2b = makeTeamSelect(teams, s2.b); const s2bs = makeScoreInput(s2.bscore);
+    const fA = makeTeamSelect(teams, f.a); const fAS = makeScoreInput(f.ascore); const fB = makeTeamSelect(teams, f.b); const fBS = makeScoreInput(f.bscore);
+    const tA = makeTeamSelect(teams, third.a); const tAs = makeScoreInput(third.ascore); const tB = makeTeamSelect(teams, third.b); const tBs = makeScoreInput(third.bscore);
+    const fvA = makeTeamSelect(teams, fifth.a); const fvAs = makeScoreInput(fifth.ascore); const fvB = makeTeamSelect(teams, fifth.b); const fvBs = makeScoreInput(fifth.bscore);
+    const lbA = makeTeamSelect(teams, loser.a); const lbAs = makeScoreInput(loser.ascore); const lbB = makeTeamSelect(teams, loser.b); const lbBs = makeScoreInput(loser.bscore);
+
+    const colQ = createCol('Quarterfinals', [matchRow(q1a,q1as,q1b,q1bs), matchRow(q2a,q2as,q2b,q2bs)]);
+    const colS = createCol('Semifinals', [matchRow(s1a,s1as,s1b,s1bs), matchRow(s2a,s2as,s2b,s2bs)]);
+    const colF = createCol('Final', [matchRow(fA,fAS,fB,fBS)]);
+    const colThird = createCol('3rd Place', [matchRow(tA,tAs,tB,tBs)]);
+    const colFifth = createCol('5th Place', [matchRow(fvA,fvAs,fvB,fvBs)]);
+    const colLoser = createCol('Loser Bowl', [matchRow(lbA,lbAs,lbB,lbBs)]);
+
+    const wrap = document.createElement('div'); wrap.className='bracket-wrap';
+    wrap.appendChild(colQ); wrap.appendChild(colS); wrap.appendChild(colF); wrap.appendChild(colThird); wrap.appendChild(colFifth); wrap.appendChild(colLoser);
+    area.appendChild(wrap);
+
+    function resolve() {
+      const q1AS = parseInt(q1as.value)||0; const q1BS = parseInt(q1bs.value)||0; const q1Win = (q1AS!==q1BS)?(q1AS>q1BS?q1a.value:q1b.value):'';
+      const q2AS = parseInt(q2as.value)||0; const q2BS = parseInt(q2bs.value)||0; const q2Win = (q2AS!==q2BS)?(q2AS>q2BS?q2a.value:q2b.value):'';
+      // semis: s1 = seed1 vs q2Win, s2 = seed2 vs q1Win
+      if(s1a.value !== (teams[0]||'')) s1a.value = teams[0]||s1a.value;
+      if(s2a.value !== (teams[1]||'')) s2a.value = teams[1]||s2a.value;
+      if(s1b.value !== q2Win) s1b.value = q2Win || s1b.value;
+      if(s2b.value !== q1Win) s2b.value = q1Win || s2b.value;
+      const s1AS = parseInt(s1as.value)||0; const s1BS = parseInt(s1bs.value)||0; const s1Win = (s1AS!==s1BS)?(s1AS>s1BS?s1a.value:s1b.value):'';
+      const s2AS = parseInt(s2as.value)||0; const s2BS = parseInt(s2bs.value)||0; const s2Win = (s2AS!==s2BS)?(s2AS>s2BS?s2a.value:s2b.value):'';
+      if(fA.value !== s1Win) fA.value = s1Win || fA.value;
+      if(fB.value !== s2Win) fB.value = s2Win || fB.value;
+      const semiLoser1 = s1Win===s1a.value? s1b.value : s1a.value;
+      const semiLoser2 = s2Win===s2a.value? s2b.value : s2a.value;
+      if(tA.value !== semiLoser1) tA.value = semiLoser1 || tA.value;
+      if(tB.value !== semiLoser2) tB.value = semiLoser2 || tB.value;
+      const q1Loser = q1a.value === q1Win ? q1b.value : q1a.value;
+      const q2Loser = q2a.value === q2Win ? q2b.value : q2a.value;
+      if(fvA.value !== q1Loser) fvA.value = q1Loser || fvA.value;
+      if(fvB.value !== q2Loser) fvB.value = q2Loser || fvB.value;
+      const finalWin = (parseInt(fAS.value||0)!==parseInt(fBS.value||0))? (parseInt(fAS.value||0) > parseInt(fBS.value||0) ? fA.value : fB.value) : '';
+      const thirdWin = (parseInt(tAs.value)||0) !== (parseInt(tBs.value)||0) ? ((parseInt(tAs.value)||0) > (parseInt(tBs.value)||0) ? tA.value : tB.value) : '';
+      const fifthWin = (parseInt(fvAs.value)||0) !== (parseInt(fvBs.value)||0) ? ((parseInt(fvAs.value)||0) > (parseInt(fvBs.value)||0) ? fvA.value : fvB.value) : '';
+      const lbWin = (parseInt(lbAs.value)||0) !== (parseInt(lbBs.value)||0) ? ((parseInt(lbAs.value)||0) > (parseInt(lbBs.value)||0) ? lbA.value : lbB.value) : '';
+      const state = {q1:{a:q1a.value,b:q1b.value,ascore:q1as.value,bscore:q1bs.value,winner:q1Win}, q2:{a:q2a.value,b:q2b.value,ascore:q2as.value,bscore:q2bs.value,winner:q2Win}, s1:{a:s1a.value,b:s1b.value,ascore:s1as.value,bscore:s1bs.value,winner:s1Win||''}, s2:{a:s2a.value,b:s2b.value,ascore:s2as.value,bscore:s2bs.value,winner:s2Win||''}, final:{a:fA.value,b:fB.value,ascore:fAS.value,bscore:fBS.value,winner:finalWin}, third:{a:tA.value,b:tB.value,ascore:tAs.value,bscore:tBs.value,winner:thirdWin}, fifth:{a:fvA.value,b:fvB.value,ascore:fvAs.value,bscore:fvBs.value,winner:fifthWin}, loser:{a:lbA.value,b:lbB.value,ascore:lbAs.value,bscore:lbBs.value,winner:lbWin}};
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      [q1a,q1b,q2a,q2b,s1a,s1b,s2a,s2b,fA,fB,tA,tB,fvA,fvB,lbA,lbB].forEach(el=> el.style.fontWeight='normal');
+      if(q1Win){ if(q1a.value===q1Win) q1a.style.fontWeight='700'; else q1b.style.fontWeight='700'; }
+      if(q2Win){ if(q2a.value===q2Win) q2a.style.fontWeight='700'; else q2b.style.fontWeight='700'; }
+      if(s1Win){ if(s1a.value===s1Win) s1a.style.fontWeight='700'; else s1b.style.fontWeight='700'; }
+      if(s2Win){ if(s2a.value===s2Win) s2a.style.fontWeight='700'; else s2b.style.fontWeight='700'; }
+      if(finalWin){ if(fA.value===finalWin) fA.style.fontWeight='700'; else fB.style.fontWeight='700'; }
+    }
+
+    [q1a,q1as,q1b,q1bs,q2a,q2as,q2b,q2bs,s1a,s1as,s1b,s1bs,s2a,s2as,s2b,s2bs,fA,fAS,fB,fBS,tA,tAs,tB,tBs,fvA,fvAs,fvB,fvBs,lbA,lbAs,lbB,lbBs].forEach(el=> el.addEventListener('input', resolve));
+    attachReset();
+    resolve();
+    return;
+  }
+}
+
+async function loadSeason(seasonName) {
+  try { document.getElementById('season-title').textContent = seasonName + ' season';
+    const rows = await fetchSheetCSV(seasonName);
+    const standings = extractStandings(rows);
+    if(standings.length===0) document.getElementById('standings-area').textContent = 'No standings table found in sheet.';
+    else renderStandingsTable(standings);
+    const h2h = computeH2H(rows, standings.map(s=>s.team));
+    renderH2HGrid(h2h);
+    buildBracketUI(standings, seasonName);
+  } catch(err) { console.error(err); document.getElementById('standings-area').textContent = 'Error loading season.'; document.getElementById('h2h-area').textContent = ''; document.getElementById('bracket-area').textContent = ''; }
+}
+
+async function loadAllTime() {
+  try {
+    document.getElementById('champions-area').textContent = 'Loading...';
+    const champRows = [];
+    for(const s of SEASONS) {
+      try { const rows = await fetchSheetCSV(s);
+            const header = rows[0].map(h=>h.toLowerCase());
+            let finalCol = header.findIndex(h=>h.includes('final'));
+            let found = '';
+            if(finalCol>=0) { for(let r=1;r<rows.length;r++) { if(rows[r][finalCol] && rows[r][finalCol].trim()!=='') { found = rows[r][finalCol].trim(); } } }
+            else { const lastRow = rows[rows.length-1] || []; found = lastRow.slice(-1)[0] || ''; }
+            let champ=''; let runner=''; let finalScore='';
+            const m = (found||'').match(/(.*?)[\s:\-–]+([0-9]{1,3})/);
+            if(m) { champ = m[1].trim(); finalScore = m[2]; } else champ = found;
+            champRows.push({season:s, champion:champ||'', runner: runner||'', score: finalScore||''});
+      } catch(e) { champRows.push({season:s, champion:'', runner:'', score:''}); }
+    }
+    const tbl = document.createElement('table');
+    tbl.innerHTML = '<tr><th>Year</th><th>Champion</th><th>Runner-Up</th><th>Final Score</th></tr>' + champRows.map(r=>`<tr><td>${r.season}</td><td>${r.champion}</td><td>${r.runner}</td><td>${r.score}</td></tr>`).join('');
+    const el = document.getElementById('champions-area'); el.innerHTML=''; el.appendChild(tbl);
+  } catch(err) { console.error(err); document.getElementById('champions-area').textContent = 'Error loading champions.'; }
+}
+
+function init() {
+  const container = document.getElementById('season-buttons');
+  const seasons = ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "All Time"];
+  seasons.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.textContent = s;
+    btn.className = 'season-btn';
+    btn.addEventListener('click', ()=> loadSeason(s));
+    container.appendChild(btn);
+  });
+  applyTeamColors();
+  loadAllTime();
+  loadSeason('All Time').catch(()=>{ loadSeason('2016'); });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
