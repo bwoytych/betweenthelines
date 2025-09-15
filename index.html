@@ -1,32 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Fantasy Football League</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Between the Lines History</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>Fantasy Football League</h1>
-    <p>All-Time + Seasons</p>
+    <h1>Between the Lines Fantasy History</h1>
+    <nav>
+      <ul id="nav"></ul>
+    </nav>
   </header>
+
   <main>
-    <div id="content">Loading Sheets...</div>
+    <h2 id="sheet-title">Select a Season</h2>
+    <div id="table-container">Loading...</div>
   </main>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.5.1/tabletop.min.js"></script>
+
   <script>
-    const PUBLISHED_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWs9EbYp9gjzjjSOfBHfoJbLNDTzaCtv2CG5u_TRvLuD0z35twSp0FCu3_3oXIxRoNPENLR6KxKMjx/pubhtml";
-    // init
-    Tabletop.init({
-      key: PUBLISHED_URL,
-      simpleSheet: false,
-      callback: showInfo
+    const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
+    const SHEETS = ["2016","2017","2018","2019","2020","2021","2022","2023","2024","2025","All Time"];
+
+    // Build navbar
+    const nav = document.getElementById("nav");
+    SHEETS.forEach(name => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.textContent = name;
+      btn.onclick = () => loadSheet(name);
+      li.appendChild(btn);
+      nav.appendChild(li);
     });
 
-    function showInfo(data, tabletop) {
-      document.getElementById("content").innerHTML =
-        "<h2>Google Sheet Data Loaded!</h2><pre>" + JSON.stringify(Object.keys(data), null, 2) + "</pre>";
+    async function loadSheet(sheetName) {
+      document.getElementById("sheet-title").textContent = sheetName;
+      document.getElementById("table-container").textContent = "Loading...";
+
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+      try {
+        const response = await fetch(url);
+        const text = await response.text();
+        renderCSV(text);
+      } catch (err) {
+        document.getElementById("table-container").textContent = "Error loading data.";
+        console.error(err);
+      }
+    }
+
+    function renderCSV(csvText) {
+      const rows = csvText.trim().split("\n").map(r => r.split(","));
+      const table = document.createElement("table");
+
+      rows.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => {
+          const td = document.createElement(i === 0 ? "th" : "td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+
+      const container = document.getElementById("table-container");
+      container.innerHTML = "";
+      container.appendChild(table);
     }
   </script>
 </body>
