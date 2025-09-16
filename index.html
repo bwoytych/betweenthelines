@@ -9,10 +9,10 @@
 <body>
 <header>
   <h1>Between the Lines — Fantasy History</h1>
-  <p class="subtitle">Standings, Head-to-Head, and Playoff Brackets</p>
+  <p class="subtitle">Standings, Head-to-Head, Final Standings, and Playoff Brackets</p>
 </header>
 
-<!-- ===== Navigation Tabs ===== -->
+<!-- ===== Navigation ===== -->
 <nav id="nav">
   <button class="tab-btn" data-tab="alltime">All-Time</button>
   <button class="tab-btn" data-tab="2016">2016</button>
@@ -29,108 +29,116 @@
 
 <main class="main">
 
-  <!-- ===== All-Time ===== -->
-  <section id="alltime" class="tab-content">
-    <h2>All-Time Standings</h2>
-    <table class="standings-table">
-      <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-      <tbody>
-        <!-- ✏️ Replace placeholders with cumulative totals -->
-        <tr><td>1</td><td>Carter</td><td>90</td><td>40</td><td>18000</td><td>16500</td><td>.692</td></tr>
-        <tr><td>2</td><td>Jake</td><td>85</td><td>45</td><td>17500</td><td>17000</td><td>.654</td></tr>
-        <!-- Add rows for all teams -->
-      </tbody>
-    </table>
+<!-- ===== All-Time ===== -->
+<section id="alltime" class="tab-content">
+  <h2>All-Time Standings</h2>
+  <table class="standings-table">
+    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
+    <tbody>
+      <!-- ✏️ Replace placeholders -->
+      <tr><td>1</td><td>Carter</td><td>90</td><td>40</td><td>18000</td><td>16500</td><td>.692</td></tr>
+      <tr><td>2</td><td>Jake</td><td>85</td><td>45</td><td>17500</td><td>17000</td><td>.654</td></tr>
+    </tbody>
+  </table>
 
-    <h3>Overall Head-to-Head</h3>
-    <table class="h2h-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th>
-          <th>Swift</th><th>Ben</th><th>Gibby</th><th>Kyle</th><th>Collin</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- ✏️ Fill in overall W-L records -->
-        <tr><td>Carter</td><td>-</td><td>10-8</td><td>9-9</td><td>12-6</td><td>11-7</td><td>14-4</td><td>5-1</td><td>4-2</td><td>3-1</td></tr>
-        <tr><td>Jake</td><td>8-10</td><td>-</td><td>7-11</td><td>10-8</td><td>9-9</td><td>11-7</td><td>3-3</td><td>5-1</td><td>4-2</td></tr>
-        <!-- Add remaining team rows -->
-      </tbody>
-    </table>
+  <h3>Overall Head-to-Head</h3>
+  <table class="h2h-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th>
+        <th>Swift</th><th>Ben</th><th>Gibby</th><th>Kyle</th><th>Collin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- ✏️ Overall W-L records -->
+      <tr><td>Carter</td><td>-</td><td>10-8</td><td>9-9</td><td>12-6</td><td>11-7</td><td>14-4</td><td>5-1</td><td>4-2</td><td>3-1</td></tr>
+      <tr><td>Jake</td><td>8-10</td><td>-</td><td>7-11</td><td>10-8</td><td>9-9</td><td>11-7</td><td>3-3</td><td>5-1</td><td>4-2</td></tr>
+    </tbody>
+  </table>
 
-    <h3>All-Time Champions</h3>
-    <table class="standings-table">
-      <thead><tr><th>Year</th><th>Champion</th></tr></thead>
-      <tbody>
-        <!-- ✏️ Replace with real champions -->
-        <tr><td>2016</td><td>Carter</td></tr>
-        <tr><td>2017</td><td>Jake</td></tr>
-        <tr><td>2018</td><td>Swift</td></tr>
-      </tbody>
-    </table>
-  </section>
+  <h3>All-Time Champions</h3>
+  <table class="standings-table">
+    <thead><tr><th>Year</th><th>Champion</th></tr></thead>
+    <tbody>
+      <tr><td>2016</td><td>Carter</td></tr>
+      <tr><td>2017</td><td>Jake</td></tr>
+      <tr><td>2018</td><td>Swift</td></tr>
+    </tbody>
+  </table>
+</section>
 
-  <!-- ===== Example Season (Duplicate for each year) ===== -->
-  <section id="2016" class="tab-content hidden">
-    <h2>2016 Season</h2>
+<!-- ===== Example Year (duplicate for each season) ===== -->
+<section id="2016" class="tab-content hidden">
+  <h2>2016 Season</h2>
 
-    <h3>Standings</h3>
-    <table class="standings-table">
-      <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-      <tbody>
-        <tr><td>1</td><td>Carter</td><td>10</td><td>3</td><td>2020</td><td>1693</td><td>.769</td></tr>
-        <tr><td>2</td><td>Leahy</td><td>7</td><td>6</td><td>1901</td><td>1921</td><td>.538</td></tr>
-        <!-- Add remaining teams -->
-      </tbody>
-    </table>
+  <h3>Regular Season Standings</h3>
+  <table class="standings-table">
+    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Carter</td><td>10</td><td>3</td><td>2020</td><td>1693</td><td>.769</td></tr>
+      <tr><td>2</td><td>Leahy</td><td>7</td><td>6</td><td>1901</td><td>1921</td><td>.538</td></tr>
+    </tbody>
+  </table>
 
-    <h3>Head-to-Head</h3>
-    <table class="h2h-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th><th>Ben</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td>Carter</td><td>-</td><td>1-1</td><td>2-0</td><td>1-2</td><td>3-0</td><td>2-0</td></tr>
-        <tr><td>Jake</td><td>1-1</td><td>-</td><td>1-1</td><td>2-1</td><td>0-2</td><td>1-0</td></tr>
-        <!-- Add remaining rows -->
-      </tbody>
-    </table>
+  <h3>Head-to-Head</h3>
+  <table class="h2h-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th><th>Ben</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Carter</td><td>-</td><td>1-1</td><td>2-0</td><td>1-2</td><td>3-0</td><td>2-0</td></tr>
+      <tr><td>Jake</td><td>1-1</td><td>-</td><td>1-1</td><td>2-1</td><td>0-2</td><td>1-0</td></tr>
+    </tbody>
+  </table>
 
-    <h3>Playoff Bracket</h3>
-    <div class="bracket">
-      <div class="round">
-        <h4>Week 13/14</h4>
-        <div class="match">Carter 263 vs Jimmy 203</div>
-        <div class="match">Jake 219 vs Leahy 291</div>
-        <div class="match">Swift 239 vs Ben 236</div>
-      </div>
-      <div class="round">
-        <h4>Week 15/16</h4>
-        <div class="match">Carter 290 vs Leahy 263</div>
-        <div class="match">Jake 320 vs Jimmy 201</div>
-        <div class="match">Swift 225 vs Ben 219</div>
-      </div>
-      <div class="round">
-        <h4>Final</h4>
-        <div class="match">Carter vs Jake</div>
-        <div class="match">Swift 464 vs Ben 455</div>
-      </div>
+  <h3>Final Standings</h3>
+  <table class="standings-table">
+    <thead><tr><th>Place</th><th>Team</th></tr></thead>
+    <tbody>
+      <tr><td>1st</td><td>Carter</td></tr>
+      <tr><td>2nd</td><td>Jake</td></tr>
+      <tr><td>3rd</td><td>Swift</td></tr>
+      <tr><td>4th</td><td>Ben</td></tr>
+      <tr><td>5th</td><td>Jimmy</td></tr>
+      <tr><td>6th</td><td>Leahy</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Playoff Bracket</h3>
+  <div class="bracket">
+    <div class="round playoff">
+      <h4>Semifinals</h4>
+      <div class="match">Carter 263 vs Jimmy 203</div>
+      <div class="match">Jake 219 vs Leahy 291</div>
     </div>
-  </section>
+    <div class="round playoff">
+      <h4>Final</h4>
+      <div class="match">Carter 290 vs Jake 263</div>
+    </div>
+    <div class="round third">
+      <h4>3rd Place</h4>
+      <div class="match">Jimmy 230 vs Leahy 220</div>
+    </div>
+    <div class="round loser">
+      <h4>Loser Bowl</h4>
+      <div class="match">Swift 239 vs Ben 236</div>
+    </div>
+  </div>
+</section>
 
-  <!-- ✏️ Duplicate the season section above for 2017–2025 and update with real data -->
+<!-- ✏️ Duplicate this entire section for 2017–2025 and update data -->
 </main>
 
 <footer class="footer">
-  Edit this file to update standings, H2H records, and playoff brackets. Push to GitHub Pages to publish changes.
+  Edit this file to update standings, H2H, final standings, and playoff results. Push to GitHub Pages to publish.
 </footer>
 
 <script>
-// Simple tab switching
+// Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.add('hidden'));
