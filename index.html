@@ -9,223 +9,110 @@
 <body>
 <header>
   <h1>Between the Lines — Fantasy History</h1>
-  <p class="subtitle">Standings, H2H, and Playoff Bracket (data from embedded workbook)</p>
+  <p class="subtitle">Regular-season standings, head-to-head records, and playoff brackets</p>
 </header>
 
-<nav id="nav"></nav>
+<!-- ===== Navigation Tabs ===== -->
+<nav id="nav">
+  <button class="tab-btn" data-tab="alltime">All-Time</button>
+  <button class="tab-btn" data-tab="2016">2016</button>
+  <button class="tab-btn" data-tab="2017">2017</button>
+  <button class="tab-btn" data-tab="2018">2018</button>
+  <button class="tab-btn" data-tab="2019">2019</button>
+  <button class="tab-btn" data-tab="2020">2020</button>
+  <button class="tab-btn" data-tab="2021">2021</button>
+  <button class="tab-btn" data-tab="2022">2022</button>
+  <button class="tab-btn" data-tab="2023">2023</button>
+  <button class="tab-btn" data-tab="2024">2024</button>
+  <button class="tab-btn" data-tab="2025">2025</button>
+</nav>
 
 <main class="main">
-  <section class="card">
-    <h2 id="season-title">Loading...</h2>
-    <div id="standings-area"></div>
-  </section>
-
-  <section class="card">
-    <h2>Head-to-Head</h2>
-    <div id="h2h-area"></div>
-  </section>
-
-  <section class="card" id="bracket-card">
-    <h2>Playoff Bracket</h2>
-    <div id="bracket-area"></div>
-    <button id="reset-bracket">Reset Bracket</button>
-  </section>
-
-  <section class="card" id="alltime-card">
+  <!-- ===== All-Time ===== -->
+  <section id="alltime" class="tab-content">
     <h2>All-Time Champions</h2>
-    <div id="alltime-area"></div>
+    <table class="standings-table">
+      <thead><tr><th>Year</th><th>Champion</th></tr></thead>
+      <tbody>
+        <!-- ✏️ Replace placeholders below with real champions -->
+        <tr><td>2016</td><td>Jake</td></tr>
+        <tr><td>2017</td><td>Swift</td></tr>
+        <tr><td>2018</td><td>Carter</td></tr>
+        <!-- Add more rows as needed -->
+      </tbody>
+    </table>
   </section>
+
+  <!-- ===== Example Season Section ===== -->
+  <!-- Copy/paste this block for each year and replace placeholder data -->
+  <section id="2016" class="tab-content hidden">
+    <h2>2016 Season</h2>
+
+    <h3>Standings</h3>
+    <table class="standings-table">
+      <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Carter</td><td>9</td><td>4</td><td>1700</td><td>1500</td><td>.692</td></tr>
+        <tr><td>2</td><td>Jake</td><td>8</td><td>5</td><td>1650</td><td>1600</td><td>.615</td></tr>
+        <!-- ✏️ Replace / add rows for all teams -->
+      </tbody>
+    </table>
+
+    <h3>Head-to-Head</h3>
+    <table class="h2h-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th><th>Ben</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Carter</td><td>-</td><td>1-1</td><td>2-0</td><td>1-0</td><td>1-1</td><td>1-0</td></tr>
+        <tr><td>Jake</td><td>1-1</td><td>-</td><td>1-1</td><td>2-0</td><td>0-2</td><td>1-0</td></tr>
+        <!-- ✏️ Fill in remaining rows -->
+      </tbody>
+    </table>
+
+    <h3>Playoff Bracket</h3>
+    <div class="bracket">
+      <!-- ✏️ Fill in teams/scores manually -->
+      <div class="round">
+        <h4>Semifinals</h4>
+        <p>Carter ____ vs ____ Jake</p>
+        <p>Jimmy ____ vs ____ Swift</p>
+      </div>
+      <div class="round">
+        <h4>Final</h4>
+        <p>Winner ____ vs ____ Winner</p>
+      </div>
+      <div class="round">
+        <h4>3rd Place</h4>
+        <p>Loser ____ vs ____ Loser</p>
+      </div>
+      <div class="round">
+        <h4>Loser Bowl</h4>
+        <p>Ben ____ vs ____ Leahy</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ✏️ Duplicate the season block above for 2017–2025 -->
 </main>
 
 <footer class="footer">
-  Data source: embedded Excel snapshot. Bracket edits are stored locally.
+  Update each table directly in this file and push to GitHub Pages.
 </footer>
 
 <script>
-async function loadData() {
-  const res = await fetch("data.json");
-  return await res.json();
-}
-
-function extractStandings(rows) {
-  // Looks for header row with 'team' and 'win' to map columns
-  const hdr = rows.findIndex(r =>
-    r.map(c => String(c).toLowerCase()).some(c => c.includes("team")) &&
-    r.map(c => String(c).toLowerCase()).some(c => c.includes("win"))
-  );
-  if (hdr === -1) return [];
-  const headers = rows[hdr].map(c => String(c).toLowerCase());
-  const col = name => headers.findIndex(h => h.includes(name));
-  const out = [];
-  for (let i = hdr + 1; i < rows.length; i++) {
-    const t = rows[i][col("team")] || "";
-    if (!t.trim()) break;
-    out.push({
-      team: t.trim(),
-      wins: rows[i][col("win")] || "",
-      losses: rows[i][col("loss")] || "",
-      pf: rows[i][col("points for")] || rows[i][col("pf")] || "",
-      pa: rows[i][col("points against")] || rows[i][col("pa")] || "",
-      pct: rows[i][col("win %")] || rows[i][col("pct")] || ""
-    });
-  }
-  return out;
-}
-
-function computeH2H(rows, teams) {
-  const map = {}; teams.forEach(t => map[t] = {});
-  rows.forEach(r => {
-    if (r.length < 5) return;
-    const A = String(r[1]||"").trim();
-    const As = parseFloat(r[2]);
-    const B = String(r[3]||"").trim();
-    const Bs = parseFloat(r[4]);
-    if (!A || !B || isNaN(As) || isNaN(Bs)) return;
-    if (!map[A][B]) map[A][B] = {w:0,l:0};
-    if (!map[B][A]) map[B][A] = {w:0,l:0};
-    if (As > Bs){ map[A][B].w++; map[B][A].l++; }
-    else if (Bs > As){ map[B][A].w++; map[A][B].l++; }
+// Simple tab switching
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.add('hidden'));
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
   });
-  return map;
-}
-
-function renderStandings(list){
-  const c = document.getElementById("standings-area");
-  c.innerHTML = "";
-  const tbl = document.createElement("table");
-  tbl.innerHTML = "<thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>";
-  const tb = document.createElement("tbody");
-  list.forEach((s,i)=>{
-    tb.innerHTML += `<tr><td>${i+1}</td><td>${s.team}</td><td>${s.wins}</td><td>${s.losses}</td>
-      <td>${s.pf}</td><td>${s.pa}</td><td>${s.pct}</td></tr>`;
-  });
-  tbl.appendChild(tb);
-  c.appendChild(tbl);
-}
-
-function renderH2H(map, teams){
-  const c = document.getElementById("h2h-area");
-  c.innerHTML = "";
-  const tbl = document.createElement("table");
-  let header = "<tr><th></th>";
-  teams.forEach(t=> header += `<th>${t}</th>`); header += "</tr>";
-  tbl.innerHTML = "<thead>"+header+"</thead>";
-  const tb = document.createElement("tbody");
-  teams.forEach(r=>{
-    let row = `<tr><td>${r}</td>`;
-    teams.forEach(cn=>{
-      if (r===cn) row += "<td>-</td>";
-      else {
-        const h = map[r][cn] || {w:0,l:0};
-        row += `<td>${h.w}-${h.l}</td>`;
-      }
-    });
-    tb.innerHTML += row + "</tr>";
-  });
-  tbl.appendChild(tb);
-  c.appendChild(tbl);
-}
-
-// simplified bracket builder (2 or 3 rounds)
-function renderBracket(standings, season){
-  const area = document.getElementById("bracket-area");
-  area.innerHTML = "";
-  const yr = parseInt(season)||0;
-  const eight = yr>=2022;
-  const teams = standings.map(s=>s.team);
-  const wrap = document.createElement("div");
-  wrap.className="bracket";
-
-  const mkSel = v=>{
-    const s=document.createElement("select");
-    ["","Carter","Jake","Jimmy","Leahy","Swift","Ben","Gibby","Kyle","Collin"].forEach(t=>{
-      const o=document.createElement("option");
-      o.value=t; o.textContent=t||"--";
-      if(t===v) o.selected=true;
-      s.appendChild(o);
-    });
-    return s;
-  };
-  const mkScore = v=>{const i=document.createElement("input"); i.type="number"; i.value=v||""; return i;};
-  const match = (a,b)=> {
-    const d=document.createElement("div");
-    d.className="match";
-    d.append(mkSel(a), mkScore(""), document.createTextNode(" vs "), mkSel(b), mkScore(""));
-    return d;
-  };
-
-  if(!eight){
-    wrap.innerHTML="<h3>Semifinals</h3>";
-    wrap.append(match(teams[0],teams[3]), match(teams[1],teams[2]));
-    wrap.innerHTML+="<h3>Final</h3>";
-    wrap.append(match("",""));
-    wrap.innerHTML+="<h3>3rd Place</h3>";
-    wrap.append(match("",""));
-    wrap.innerHTML+="<h3>Loser Bowl</h3>";
-    wrap.append(match(teams[4],teams[5]));
-  } else {
-    wrap.innerHTML="<h3>Quarterfinals</h3>";
-    wrap.append(match(teams[2],teams[5]), match(teams[3],teams[4]));
-    wrap.innerHTML+="<h3>Semifinals</h3>";
-    wrap.append(match(teams[0],""), match(teams[1],""));
-    wrap.innerHTML+="<h3>Final</h3>";
-    wrap.append(match("",""));
-    wrap.innerHTML+="<h3>3rd Place</h3>";
-    wrap.append(match("",""));
-    wrap.innerHTML+="<h3>5th Place</h3>";
-    wrap.append(match("",""));
-    wrap.innerHTML+="<h3>Loser Bowl</h3>";
-    wrap.append(match(teams[6],teams[7]));
-  }
-  area.appendChild(wrap);
-}
-
-function renderAllTime(sheets){
-  const c=document.getElementById("alltime-area");
-  c.innerHTML="";
-  const tbl=document.createElement("table");
-  let rows="";
-  Object.keys(sheets).filter(k=>k.toLowerCase()!=="all time").forEach(y=>{
-    const r=sheets[y];
-    const champ=r[1]?r[1][0]:"";
-    rows+=`<tr><td>${y}</td><td>${champ}</td></tr>`;
-  });
-  tbl.innerHTML="<thead><tr><th>Year</th><th>Champion</th></tr></thead><tbody>"+rows+"</tbody>";
-  c.appendChild(tbl);
-}
-
-async function init(){
-  const sheets = await loadData();
-  const seasons = Object.keys(sheets);
-  const nav = document.getElementById("nav");
-  nav.innerHTML = seasons.map(s=>`<button class="nav-btn" data-s="${s}">${s}</button>`).join(" ");
-  document.querySelectorAll(".nav-btn").forEach(b=>{
-    b.onclick = ()=>{
-      const s=b.dataset.s;
-      document.getElementById("season-title").textContent = s;
-      const rows=sheets[s];
-      const standings = extractStandings(rows);
-      renderStandings(standings);
-      const h2h = computeH2H(rows, standings.map(x=>x.team));
-      renderH2H(h2h, standings.map(x=>x.team));
-      if (s.toLowerCase() === "all time"){
-        document.getElementById("bracket-area").innerHTML="";
-        renderAllTime(sheets);
-      } else {
-        renderBracket(standings,s);
-        document.getElementById("alltime-area").innerHTML="";
-      }
-    };
-  });
-  if(seasons.length) document.querySelector(".nav-btn").click();
-}
-init();
-
-document.getElementById("reset-bracket").onclick = ()=>{
-  const s=document.getElementById("season-title").textContent;
-  localStorage.removeItem("bracket-"+s);
-  document.querySelector(`.nav-btn[data-s='${s}']`).click();
-};
+});
+// show All-Time by default
+document.querySelector('.tab-btn[data-tab=\"alltime\"]').click();
 </script>
 </body>
 </html>
