@@ -15,17 +15,24 @@
 <!-- ===== Navigation ===== -->
 <nav id="nav">
   <button class="tab-btn" data-tab="alltime">All-Time</button>
-  <button class="tab-btn" data-tab="2016">2016</button>
-  <button class="tab-btn" data-tab="2017">2017</button>
-  <button class="tab-btn" data-tab="2018">2018</button>
-  <button class="tab-btn" data-tab="2019">2019</button>
-  <button class="tab-btn" data-tab="2020">2020</button>
-  <button class="tab-btn" data-tab="2021">2021</button>
-  <button class="tab-btn" data-tab="2022">2022</button>
-  <button class="tab-btn" data-tab="2023">2023</button>
-  <button class="tab-btn" data-tab="2024">2024</button>
-  <button class="tab-btn" data-tab="2025">2025</button>
+
+  <div class="dropdown">
+    <button class="dropbtn">Seasons ▾</button>
+    <div class="dropdown-content">
+      <a href="#" data-tab="2016">2016</a>
+      <a href="#" data-tab="2017">2017</a>
+      <a href="#" data-tab="2018">2018</a>
+      <a href="#" data-tab="2019">2019</a>
+      <a href="#" data-tab="2020">2020</a>
+      <a href="#" data-tab="2021">2021</a>
+      <a href="#" data-tab="2022">2022</a>
+      <a href="#" data-tab="2023">2023</a>
+      <a href="#" data-tab="2024">2024</a>
+      <a href="#" data-tab="2025">2025</a>
+    </div>
+  </div>
 </nav>
+
 
 <main class="main">
 
@@ -475,16 +482,18 @@
 </footer>
 
 <script>
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.add('hidden'));
-    document.getElementById(btn.dataset.tab).classList.remove('hidden');
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
+function activateTab(tabName){
+  document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.add('hidden'));
+  document.getElementById(tabName).classList.remove('hidden');
+}
+
+document.querySelectorAll('[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    e.preventDefault();
+    activateTab(btn.dataset.tab);
   });
 });
-document.querySelector('.tab-btn[data-tab="alltime"]').click();
+
+// Default to All-Time on load
+activateTab('alltime');
 </script>
-</body>
-</html>
