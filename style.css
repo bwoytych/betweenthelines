@@ -149,3 +149,20 @@ tr:nth-child(even) td { background: #fafafa; }
 .dropdown-content a:hover { background-color: #eee; }
 .dropdown:hover .dropdown-content { display: block; }
 
+/* --- Team Colors --- */
+.team-Carter  { background-color: #ff7f50; } /* Coral */
+.team-Jake    { background-color: #1e90ff; } /* Dodger Blue */
+.team-Jimmy   { background-color: #32cd32; } /* Lime Green */
+.team-Ben     { background-color: #808080; } /* Gray */
+.team-Swift   { background-color: #ff69b4; } /* Hot Pink */
+.team-Leahy   { background-color: #9370db; } /* Purple */
+.team-Gibby   { background-color: #ffd700; } /* Gold */
+.team-Kyle    { background-color: #20b2aa; } /* Teal */
+.team-Collin  { background-color: #ff4500; } /* Orange Red */
+
+.team-label {
+  padding: 2px 6px;
+  color: #fff;
+  border-radius: 4px;
+  font-weight: bold;
+}
