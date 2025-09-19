@@ -166,3 +166,19 @@ tr:nth-child(even) td { background: #fafafa; }
   border-radius: 4px;
   font-weight: bold;
 }
+
+/* Make bracket images span wider while allowing horizontal scroll */
+.bracket-wide {
+  width: 100%;
+  overflow-x: auto;    /* horizontal scrolling if needed */
+  overflow-y: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.bracket-wide img {
+  display: block;
+  max-height: none;
+  width: 1600px;       /* increase this to stretch horizontally */
+  height: auto;
+  margin: 0 auto;      /* center horizontally */
+}
