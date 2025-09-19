@@ -178,7 +178,7 @@ tr:nth-child(even) td { background: #fafafa; }
 .bracket-wide img {
   display: block;
   max-height: none;
-  width: 1600px;       /* increase this to stretch horizontally */
+  width: 2000px;       /* increase this to stretch horizontally */
   height: auto;
   margin: 0 auto;      /* center horizontally */
 }
