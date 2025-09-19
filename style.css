@@ -224,3 +224,61 @@ tr:nth-child(even) td { background: #fafafa; }
 .dropdown:hover .dropdown-content {
   display: block;
 }
+/* Center the whole nav group */
+.nav-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;            /* spacing between buttons/dropdowns */
+  padding: 10px 0;
+}
+
+/* Match All Time button and dropdown triggers */
+.nav-btn,
+.dropbtn {
+  background: #222;     /* same dark color */
+  color: #fff;
+  padding: 10px 18px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nav-btn:hover,
+.dropbtn:hover {
+  background: #444;     /* hover shade */
+}
+
+/* Dropdown container */
+.dropdown {
+  position: relative;
+}
+
+/* Dropdown list styling */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background: #fff;
+  min-width: 160px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.dropdown-content button {
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+}
+
+.dropdown-content button:hover {
+  background: #eee;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
