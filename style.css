@@ -345,4 +345,11 @@ tr:nth-child(even) td { background: #fafafa; }
   }
   .hidden { display: none; }
 </style>
+/* Player profiles images */
+#player-profiles img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+}
 
