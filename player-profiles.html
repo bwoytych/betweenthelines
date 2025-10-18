@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player Profiles</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #111824;
+      --text: #e9eef5;
+      --muted: #9fb0c8;
+      --accent: #4ea1ff;
+      --ring: #274b79;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background: radial-gradient(1200px 800px at 50% -100px, #112035, #0b0f14 70%), var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 24px 16px; text-align: center;
+    }
+    header h1 {
+      margin: 0; font-size: clamp(20px, 3vw, 34px); letter-spacing: 0.3px;
+    }
+    header p { margin: 8px 0 0; color: var(--muted); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+    .filters {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px;
+    }
+    .filters input[type="search"] {
+      flex: 1 1 260px; padding: 10px 12px; border-radius: 12px; border: 1px solid #1e2a3b;
+      background: #0e1520; color: var(--text); outline: none;
+    }
+    .filters input[type="search"]:focus { border-color: var(--ring); box-shadow: 0 0 0 3px #274b7922; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: linear-gradient(180deg, #0f1722, #0b111a);
+      border: 1px solid #182235;
+      border-radius: 16px;
+      padding: 12px;
+      transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px #00000050;
+      border-color: #21324c;
+    }
+    .thumb {
+      aspect-ratio: 4/3;
+      width: 100%;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #0e1520;
+    }
+    .meta {
+      display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
+    }
+    .name { font-weight: 700; letter-spacing: 0.2px; }
+    .badge {
+      font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #0e1a2a; color: var(--muted);
+      border: 1px solid #1d2a41;
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0; display: none; place-items: center;
+      background: #000000cc; z-index: 1000; padding: 16px;
+    }
+    .modal.open { display: grid; }
+    .dialog {
+      width: min(1000px, 96vw);
+      background: #0c121b; border: 1px solid #1c2a40; border-radius: 18px; padding: 12px; box-shadow: 0 10px 40px #00000088;
+      display: grid; gap: 12px;
+    }
+    .dialog-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 0;
+    }
+    .dialog-title { font-weight: 700; letter-spacing: .2px; }
+    .close {
+      border: 0; background: #111a28; color: var(--text); border-radius: 10px; padding: 8px 10px; cursor: pointer;
+    }
+    .viewer {
+      position: relative; background: #0a0f17; border-radius: 12px; padding: 8px;
+    }
+    .viewer img {
+      width: 100%; height: auto; display: block; border-radius: 10px; background: #0a0f17;
+    }
+    .controls {
+      display: flex; justify-content: space-between; gap: 8px; padding: 0 4px;
+    }
+    .controls button {
+      flex: 1 1 auto; border: 1px solid #1b2940; background: #0f1724; color: var(--text);
+      padding: 10px 12px; border-radius: 10px; cursor: pointer;
+    }
+    .controls button:disabled { opacity: .4; cursor: not-allowed; }
+    .footnote {
+      text-align: center; color: var(--muted); font-size: 12px; margin-top: 12px;
+    }
+    /* Nice focus outlines for a11y */
+    .card:focus, .close:focus, .controls button:focus, .filters input:focus {
+      outline: 3px solid #274b79; outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Player Profiles</h1>
+    <p>Click a card to view the full-size profile. Use ←/→ or the buttons to switch between images.</p>
+  </header>
+
+  <div class="container">
+    <div class="filters">
+      <input id="search" type="search" placeholder="Search players…" aria-label="Search players" />
+    </div>
+
+    <div id="grid" class="grid" role="list"></div>
+    <p class="footnote">Tip: Put images in <code>/Player_Profiles/Name.png</code> and optional <code>_Expansion.png</code>. Change <code>IMG_EXT</code> if needed.</p>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal" aria-hidden="true" aria-modal="true" role="dialog">
+    <div class="dialog" role="document">
+      <div class="dialog-header">
+        <div class="dialog-title" id="dialogTitle">Player</div>
+        <button class="close" id="closeBtn" aria-label="Close">Close ✕</button>
+      </div>
+      <div class="viewer">
+        <img id="viewerImg" alt="" loading="eager" />
+      </div>
+      <div class="controls">
+        <button id="prevBtn" aria-label="Previous image">← Previous</button>
+        <button id="nextBtn" aria-label="Next image">Next →</button>
+        <button id="openRawBtn" aria-label="Open full image in new tab">Open Full Image</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === SETTINGS ===
+    // Change to "jpg" if your Canva exports are JPGs.
+    const IMG_EXT = "png";
+    const BASE_DIR = "./Player_Profiles";
+
+    // Define your players and whether they have an Expansion image.
+    // Kyle & Collin have only one image, per your note.
+    const players = [
+      { name: "Ben",          hasExpansion: true  },
+      { name: "Carter",       hasExpansion: true  },
+      { name: "Jake",         hasExpansion: true  },
+      { name: "Jimmy",        hasExpansion: true  },
+      { name: "Gibby",        hasExpansion: true  },
+      { name: "Swift",        hasExpansion: true  },
+      { name: "Kyle",         hasExpansion: false },
+      { name: "Collin",       hasExpansion: false },
+    ];
+
+    // Build data model with image URLs (don’t fetch yet; modal will load actual)
+    function imagePathsFor(name, hasExpansion) {
+      const base = `${BASE_DIR}/${name}.${IMG_EXT}`;
+      const out = [base];
+      if (hasExpansion) out.push(`${BASE_DIR}/${name}_Expansion.${IMG_EXT}`);
+      return out;
+    }
+
+    const data = players.map(p => ({
+      ...p,
+      images: imagePathsFor(p.name, p.hasExpansion),
+      thumb: `${BASE_DIR}/${p.name}.${IMG_EXT}`
+    }));
+
+    // Render grid
+    const gridEl = document.getElementById("grid");
+    function renderGrid(list) {
+      gridEl.innerHTML = "";
+      for (const p of list) {
+        const card = document.createElement("button");
+        card.className = "card";
+        card.setAttribute("role", "listitem");
+        card.setAttribute("aria-label", `Open ${p.name} profile`);
+        card.addEventListener("click", () => openModal(p.name));
+
+        const img = document.createElement("img");
+        img.className = "thumb";
+        img.loading = "lazy";
+        img.alt = `${p.name} profile preview`;
+        img.src = p.thumb;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = p.name;
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = p.hasExpansion ? "2 images" : "1 image";
+
+        meta.appendChild(name);
+        meta.appendChild(badge);
+
+        card.appendChild(img);
+        card.appendChild(meta);
+        gridEl.appendChild(card);
+      }
+    }
+
+    // Search
+    const searchEl = document.getElementById("search");
+    function applySearch() {
+      const q = searchEl.value.trim().toLowerCase();
+      const filtered = q ? data.filter(d => d.name.toLowerCase().includes(q)) : data;
+      renderGrid(filtered);
+    }
+    searchEl.addEventListener("input", applySearch);
+
+    // Modal logic
+    const modalEl = document.getElementById("modal");
+    const titleEl = document.getElementById("dialogTitle");
+    const viewerImg = document.getElementById("viewerImg");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const openRawBtn = document.getElementById("openRawBtn");
+    const closeBtn = document.getElementById("closeBtn");
+
+    let currentPlayer = null;
+    let currentIndex = 0;
+
+    function openModal(name) {
+      currentPlayer = data.find(d => d.name === name);
+      currentIndex = 0;
+      titleEl.textContent = name;
+      updateViewer();
+      modalEl.classList.add("open");
+      modalEl.setAttribute("aria-hidden", "false");
+      // a11y: focus the close button
+      closeBtn.focus();
+      document.addEventListener("keydown", onKey);
+    }
+
+    function closeModal() {
+      modalEl.classList.remove("open");
+      modalEl.setAttribute("aria-hidden", "true");
+      currentPlayer = null;
+      currentIndex = 0;
+      document.removeEventListener("keydown", onKey);
+    }
+
+    function onKey(e) {
+      if (e.key === "Escape") closeModal();
+      if (!currentPlayer) return;
+      if (e.key === "ArrowRight") next();
+      if (e.key === "ArrowLeft") prev();
+    }
+
+    function updateViewer() {
+      const imgs = currentPlayer.images;
+      viewerImg.src = imgs[currentIndex];
+      viewerImg.alt = `${currentPlayer.name} profile ${currentIndex+1} of ${imgs.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === imgs.length - 1;
+      openRawBtn.onclick = () => window.open(imgs[currentIndex], "_blank");
+    }
+
+    function next() {
+      if (!currentPlayer) return;
+      if (currentIndex < currentPlayer.images.length - 1) {
+        currentIndex++;
+        updateViewer();
+      }
+    }
+    function prev() {
+      if (!currentPlayer) return;
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateViewer();
+      }
+    }
+
+    // Bind controls
+    closeBtn.addEventListener("click", closeModal);
+    modalEl.addEventListener("click", (e) => {
+      if (e.target === modalEl) closeModal();
+    });
+    nextBtn.addEventListener("click", next);
+    prevBtn.addEventListener("click", prev);
+
+    // Initial render
+    renderGrid(data);
+  </script>
+</body>
+</html>
