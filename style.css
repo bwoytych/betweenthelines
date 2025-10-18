@@ -352,4 +352,74 @@ tr:nth-child(even) td { background: #fafafa; }
   display: block;
   margin: 10px 0;
 }
+/* --- Player Profiles Polished Layout --- */
+:root{
+  --card-bg: #0e1420;        /* adjust to match your theme */
+  --ring: #1f2f4a;
+  --line: #24324a;
+}
+
+/* Center the whole profiles area and keep a readable width */
+#player-profiles {
+  max-width: 1000px;
+  margin: 40px auto 60px;
+  padding: 0 16px;
+}
+
+/* Make each player look like a tidy card */
+#player-profiles > .tab-content {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 0 auto 28px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.25);
+  scroll-margin-top: 90px;   /* nicer anchor scroll from the dropdown */
+}
+
+#player-profiles h2 {
+  text-align: center;
+  margin: 6px 0 18px;
+  font-size: 1.8rem;
+  border-bottom: 2px solid var(--ring);
+  display: inline-block;
+  padding: 4px 10px 8px;
+}
+
+/* Images: centered, crisp, and consistent */
+.sheet {
+  display: block;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  transition: transform .15s ease;
+}
+.sheet:hover { transform: scale(1.01); }
+
+/* Vertical stack (mobile / default) with a clean divider between the two */
+.sheet + .sheet {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+
+/* Side-by-side on wider screens, with a vertical divider */
+.sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 1100px) {
+  .sheet-grid { grid-template-columns: 1fr 1fr; }
+  .sheet + .sheet {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    border-left: 1px dashed var(--line);
+    padding-left: 24px;
+  }
+}
+.tab-content { scroll-margin-top: 90px; }
 
