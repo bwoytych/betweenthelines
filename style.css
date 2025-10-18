@@ -336,3 +336,13 @@ tr:nth-child(even) td { background: #fafafa; }
 .nav-center .dropbtn:hover {
   background: #444 !important;
 }
+<style>
+  .player-section img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px 0;
+  }
+  .hidden { display: none; }
+</style>
+
