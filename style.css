@@ -407,44 +407,63 @@ tr:nth-child(even) td { background: #fafafa; }
 
 /* Side-by-side on wider screens, with a vertical divider */
 /* Images: fill their column, never overflow */
+/* Keep images inside their column, no overflow */
 .sheet {
   display: block;
   width: 100%;
-  max-width: 100%;   /* ⬅ was 860px; this prevents spill */
+  max-width: 100%;
   height: auto;
   margin: 0 auto;
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0,0,0,.35);
   transition: transform .15s ease;
+  box-sizing: border-box;   /* <- important so padding/border won't expand width */
 }
 .sheet:hover { transform: scale(1.01); }
 
-/* Vertical stack by default with a divider */
+/* Stack on mobile with a horizontal divider between the two */
 .sheet + .sheet {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px dashed var(--line);
 }
 
-/* Side-by-side on wide screens; columns can shrink properly */
+/* Two-column layout with a centered vertical divider handled by the GRID (not the image) */
 .sheet-grid {
   display: grid;
-  grid-template-columns: 1fr;      /* mobile */
+  grid-template-columns: 1fr;
   gap: 24px;
   align-items: start;
+  position: relative;
 }
 @media (min-width: 1100px) {
   .sheet-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));  /* ⬅ minmax(0,1fr) prevents overflow */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* remove the mobile divider on desktop */
   .sheet + .sheet {
     margin-top: 0;
     padding-top: 0;
     border-top: 0;
-    border-left: 1px dashed var(--line);
-    padding-left: 24px;
+  }
+  /* add a true center divider that doesn't push either image */
+  .sheet-grid::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: var(--line);
+    opacity: .6;
+    transform: translateX(-50%);
+    pointer-events: none;
   }
 }
+
+/* safety: never show horizontal scroll here */
+#player-profiles, #player-profiles .tab-content { overflow-x: hidden; }
+
 
 /* (optional safety) never show a horizontal scrollbar here */
 #player-profiles, #player-profiles .tab-content { overflow-x: hidden; }
