@@ -362,6 +362,10 @@
   .legend-row{ display:flex; gap:16px; font-size:12px; color:var(--chalk-dim); margin-top:10px; }
   .legend-row .sw{ width:9px; height:9px; display:inline-block; margin-right:5px; vertical-align:middle; }
 
+  /* ---------- Record Book ---------- */
+  tr.champ-row td{ background: rgba(78,154,92,0.18); font-weight:700; color:#CFEFD4; }
+  tr.champ-row td.rank-cell{ color:#9FD9A8; font-weight:700; }
+
   footer{
     border-top:1px solid var(--line);
     padding:28px 0 60px;
@@ -449,6 +453,7 @@
     <button role="tab" data-panel="franchise" aria-selected="true">Franchise</button>
     <button role="tab" data-panel="seasons" aria-selected="false">Seasons</button>
     <button role="tab" data-panel="players" aria-selected="false">Players</button>
+    <button role="tab" data-panel="recordbook" aria-selected="false">Record Book</button>
   </div>
 </nav>
 
@@ -507,6 +512,12 @@
   <section id="panel-players" class="panel">
     <div class="year-rail" id="playerRail"><span class="loading-note">Loading…</span></div>
     <div id="playerContent"></div>
+  </section>
+
+  <!-- RECORD BOOK -->
+  <section id="panel-recordbook" class="panel">
+    <div class="year-rail" id="recordBookNav"><span class="loading-note">Loading…</span></div>
+    <div id="recordBookContent"></div>
   </section>
 
 </main>
@@ -605,8 +616,8 @@ function sheetCsvUrl(sheetName){
   return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_=${cacheBust}`;
 }
 
-async function fetchYearGrid(year){
-  const res = await fetch(sheetCsvUrl(String(year)));
+async function fetchSheetGrid(sheetName){
+  const res = await fetch(sheetCsvUrl(sheetName));
   if(!res.ok) throw new Error(`HTTP ${res.status}`);
   const text = await res.text();
   // A tab that doesn't exist comes back as an HTML error page, not CSV.
@@ -727,14 +738,93 @@ function sortStandingsByRecord(rows, h2h){
 }
 
 /* ===================================================================== */
-/* Load every season, then aggregate franchise-wide totals               */
+/* Record Book tab — top individual player performances by position      */
 /* ===================================================================== */
+
+const RECORD_BOOK_SHEET_NAME = "Record Book";
+const RECORD_BOOK_POSITIONS = [
+  {key:"qb", label:"Quarterback"},
+  {key:"rb", label:"Running Back"},
+  {key:"wr", label:"Wide Receiver"},
+  {key:"te", label:"Tight End"},
+];
+
+// Each position's table is four columns (Year, Name, Points, Owner) sitting
+// under a merged header cell with the position's name. Found by label, same
+// as everything else, so reordering or resizing these tables in the sheet
+// doesn't break anything here.
+function parseRecordBookPosition(grid, label){
+  const head = findCell(grid, v => v.toLowerCase() === label.toLowerCase());
+  if(!head) return [];
+  // The "Year" sub-header sits in the same column, a row or two below the
+  // merged position label — search a few rows down rather than assuming
+  // exactly one row, in case the sheet's header is laid out slightly
+  // differently.
+  let subRow = null;
+  for(let r=head.r+1; r<=head.r+3; r++){
+    if(cell(grid, r, head.c).toLowerCase() === "year"){ subRow = r; break; }
+  }
+  if(subRow === null) return [];
+
+  const rows = [];
+  for(let r=subRow+1; r<grid.length; r++){
+    const year = cell(grid, r, head.c);
+    if(!year) break;
+    const name = cell(grid, r, head.c+1);
+    const points = parseFloat(cell(grid, r, head.c+2));
+    const owner = cell(grid, r, head.c+3);
+    if(!name || !owner) continue;
+    rows.push({year: Number(year), name, points: Number.isNaN(points) ? 0 : points, owner});
+  }
+  // Re-sort by points ourselves rather than trust sheet row order, so an
+  // out-of-order entry (or a newly inserted one) never shows up mis-ranked.
+  rows.sort((a,b) => b.points - a.points);
+  return rows;
+}
+
+function parseRecordBook(grid){
+  const positions = {};
+  RECORD_BOOK_POSITIONS.forEach(p => { positions[p.key] = parseRecordBookPosition(grid, p.label); });
+  return positions;
+}
+
+// "Total # of Players" and "Players on Championship Team" are computed live
+// from the position tables above plus the champions we already derived from
+// each season's final standings — never read from the sheet's own
+// leaderboard columns, so this can never drift out of sync with them.
+function computeRecordBookLeaderboard(positions, champions){
+  const champByYear = {};
+  champions.forEach(c => { champByYear[c.year] = c.team; });
+
+  const totals = {}; // owner -> {total, champTeam}
+  Object.values(positions).forEach(rows => {
+    rows.forEach(row => {
+      totals[row.owner] = totals[row.owner] || {total:0, champ:0};
+      totals[row.owner].total++;
+      if(champByYear[row.year] === row.owner) totals[row.owner].champ++;
+    });
+  });
+
+  return Object.entries(totals)
+    .map(([owner, v]) => ({owner, total:v.total, champ:v.champ}))
+    .sort((a,b) => b.total - a.total || b.champ - a.champ);
+}
+
+// Loaded independently from season data — a Record Book fetch failure
+// shouldn't take down the rest of the site.
+async function loadRecordBook(){
+  const {grid} = await fetchSheetGrid(RECORD_BOOK_SHEET_NAME);
+  const positions = parseRecordBook(grid);
+  const gotAnything = Object.values(positions).some(rows => rows.length > 0);
+  if(!gotAnything) throw new Error("Record Book tab found, but no position tables could be read from it.");
+  return positions;
+}
 
 async function loadSeasons(){
   const years = [];
   for(let y=CANDIDATE_YEAR_RANGE[0]; y<=CANDIDATE_YEAR_RANGE[1]; y++) years.push(y);
 
-  const settled = await Promise.allSettled(years.map(async y => ({y, ...(await fetchYearGrid(y))})));
+  const settled = await Promise.allSettled(years.map(async y => ({y, ...(await fetchSheetGrid(String(y)))})));
 
   const seasons = {};
   let anyFetchAttempted = false;
@@ -1292,6 +1382,114 @@ function renderPlayers(){
   renderPlayerProfile();
 }
 
+/* ---------- Record Book ---------- */
+let recordBookData = null; // {positions, leaderboard} once loaded
+let currentRecordView = "leaderboard"; // "leaderboard" | "qb" | "rb" | "wr" | "te"
+
+function renderRecordBookNav(){
+  const items = [{key:"leaderboard", label:"Leaderboard"}, ...RECORD_BOOK_POSITIONS];
+  document.getElementById("recordBookNav").innerHTML = items.map(item =>
+    `<button data-view="${item.key}" class="${item.key===currentRecordView?'active':''}">${item.label}</button>`
+  ).join("");
+  document.querySelectorAll("#recordBookNav button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentRecordView = btn.dataset.view;
+      renderRecordBookNav();
+      renderRecordBookContent();
+    });
+  });
+}
+
+function renderRecordBookContent(){
+  const container = document.getElementById("recordBookContent");
+  if(!recordBookData){
+    container.innerHTML = `<p class="loading-note">Loading the Record Book tab…</p>`;
+    return;
+  }
+
+  if(currentRecordView === "leaderboard"){
+    const rows = recordBookData.leaderboard;
+    container.innerHTML = `
+      <section class="block">
+        <h2 class="h">Leaderboard</h2>
+        <p class="sub">How many top-50 individual performances each owner has had, and how many came from a championship-winning team — counted straight from the position tables, so it never needs updating by hand.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Owner</th>
+              <th class="num">Total # of players</th>
+              <th class="num">On a championship team</th>
+            </tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td class="team">${r.owner}</td>
+                  <td class="num">${r.total}</td>
+                  <td class="num">${r.champ}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>`;
+    return;
+  }
+
+  const posMeta = RECORD_BOOK_POSITIONS.find(p => p.key === currentRecordView);
+  const rows = recordBookData.positions[currentRecordView] || [];
+  container.innerHTML = `
+    <section class="block">
+      <h2 class="h">${posMeta.label}</h2>
+      <p class="sub">Top individual seasons at ${posMeta.label.toLowerCase()}, ranked by points.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th class="num">Rk</th>
+            <th class="num">Year</th>
+            <th>Player</th>
+            <th class="num">Points</th>
+            <th>Owner</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map((r,i) => `
+              <tr class="${r.isChamp ? 'champ-row' : ''}">
+                <td class="num rank-cell">${i+1}</td>
+                <td class="num">${r.year}</td>
+                <td>${r.name}</td>
+                <td class="num">${fmtNum(r.points)}</td>
+                <td>${r.owner}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="legend-row">
+        <span><span class="sw" style="background:rgba(78,154,92,0.6)"></span>Owner won the championship that year</span>
+      </div>
+    </section>`;
+}
+
+async function initRecordBook(){
+  try{
+    const positions = await loadRecordBook();
+    // Tag each row so the champion highlight doesn't need re-deriving at render time.
+    const champByYear = {};
+    LIVE.champions.forEach(c => { champByYear[c.year] = c.team; });
+    Object.values(positions).forEach(rows => {
+      rows.forEach(row => { row.isChamp = champByYear[row.year] === row.owner; });
+    });
+    const leaderboard = computeRecordBookLeaderboard(positions, LIVE.champions);
+    recordBookData = {positions, leaderboard};
+  } catch(err){
+    console.error("Between the Lines: Record Book load failed", err);
+    document.getElementById("recordBookContent").innerHTML = `
+      <p class="loading-note">Couldn't load the Record Book tab: ${(err && err.message) || err}. Check that a tab named
+      "${RECORD_BOOK_SHEET_NAME}" exists and is shared the same way as the season tabs.</p>`;
+  }
+  renderRecordBookNav();
+  renderRecordBookContent();
+}
+
 /* ---------- Hero stats ---------- */
 function renderHero(){
   const champs = LIVE.champions;
@@ -1357,6 +1555,7 @@ async function init(){
     renderYearRail();
     renderSeason();
     renderPlayers();
+    await initRecordBook();
 
     const now = new Date();
     setStatus("live", `Live from the league spreadsheet · updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`);
