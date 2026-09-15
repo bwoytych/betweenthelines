@@ -337,9 +337,10 @@
   .stat-row .bar-fill{ height:100%; background:var(--gold); }
   .stat-row .stat-value{ font-size:13px; font-variant-numeric:tabular-nums; width:80px; text-align:right; flex-shrink:0; color:var(--chalk); }
 
-  .mini-bars{ display:flex; align-items:flex-end; gap:6px; height:120px; margin-top:12px; }
-  .mini-bars .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .mini-bars{ display:flex; align-items:flex-end; gap:6px; margin-top:12px; }
+  .mini-bars .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
   .mini-bars .bar-val{ font-size:10px; color:var(--chalk-dim); margin-bottom:3px; white-space:nowrap; }
+  .mini-bars .bar-track{ width:100%; height:100px; display:flex; align-items:flex-end; }
   .mini-bars .bar{ width:100%; background:var(--gold-dim); border-radius:1px 1px 0 0; }
   .mini-bars .bar.hi{ background:var(--gold-bright); }
   .mini-bars .bar-year{ font-size:10px; color:var(--chalk-faint); margin-top:5px; }
@@ -435,7 +436,6 @@
     <div class="eyebrow-row"><span class="dot"></span><span id="heroKicker">Fantasy football, since 2016</span></div>
     <h1 class="wordmark">Between the<br><span>Lines.</span></h1>
     <p class="tag" id="heroTag">Every season, every matchup, every ring — the full record book.</p>
-    <div class="stat-strip" id="statStrip"></div>
     <div class="status-bar" id="statusBar">
       <span class="dot-live" id="statusDot"></span>
       <span id="statusText">Loading data from the league spreadsheet…</span>
@@ -1137,14 +1137,24 @@ function statBar(label, value, of){
     </div>`;
 }
 
-function miniBarChart(data, key, fmt){
-  const max = Math.max(...data.map(d=>d[key]), 1);
+function miniBarChart(data, key, fmt, opts){
+  opts = opts || {};
+  const vals = data.map(d=>d[key]);
+  const max = Math.max(...vals, 1);
+  // Points-for totals sit in a narrow band far from zero, so a plain 0-based
+  // scale makes every bar look nearly full. Baseline it just under the
+  // season low instead, so real differences actually show. Wins stay
+  // 0-based since 0 wins is a real, meaningful value.
+  const base = opts.zeroBase === false ? Math.min(...vals) * 0.9 : 0;
+  const span = Math.max(max - base, 1);
   return `
     <div class="mini-bars">
       ${data.map(d => `
         <div class="bar-col">
           <span class="bar-val">${fmt ? fmt(d[key]) : d[key]}</span>
-          <div class="bar ${d[key]===max?'hi':''}" style="height:${Math.max((d[key]/max)*100,3)}%"></div>
+          <div class="bar-track">
+            <div class="bar ${d[key]===max?'hi':''}" style="height:${Math.max(((d[key]-base)/span)*100, 3)}%"></div>
+          </div>
           <span class="bar-year">${d.year}</span>
         </div>
       `).join("")}
@@ -1214,6 +1224,7 @@ function renderPlayerProfile(){
     <section class="block">
       <h2 class="h" style="font-size:18px;">Performance breakdown</h2>
       ${statBar("Playoff appearances", stats.playoffApps, stats.seasonsPlayed)}
+      ${statBar("Championships won", stats.champWins, stats.seasonsPlayed)}
       ${statBar("Championship appearances", stats.champApps, stats.seasonsPlayed)}
       ${statBar("Division titles", stats.divisionTitles, stats.seasonsPlayed)}
       ${statBar("Loser bowl appearances", stats.loserBowlApps, stats.seasonsPlayed)}
@@ -1237,7 +1248,7 @@ function renderPlayerProfile(){
 
     <section class="block">
       <h2 class="h" style="font-size:18px;">Points for, per season</h2>
-      ${miniBarChart(stats.pfPerSeason, "pf", v=>fmtNum(v).split(".")[0])}
+      ${miniBarChart(stats.pfPerSeason, "pf", v=>fmtNum(v).split(".")[0], {zeroBase:false})}
     </section>
 
     <section class="block">
@@ -1285,16 +1296,9 @@ function renderPlayers(){
 function renderHero(){
   const champs = LIVE.champions;
   const last = champs[champs.length-1];
-  const leader = [...LIVE.allTimeStandings].sort((a,b)=> (b.w/(b.w+b.l)) - (a.w/(a.w+a.l)))[0];
   document.getElementById("heroTag").textContent = last
     ? `${champs.length} seasons of standings, head-to-heads, and playoff brackets — reigning champion: ${last.team} (${last.year}).`
     : `Standings, head-to-heads, and playoff brackets, season by season.`;
-  document.getElementById("statStrip").innerHTML = `
-    <div class="stat"><span class="num">${years.length}</span><span class="label">Seasons</span></div>
-    <div class="stat"><span class="num">${LIVE.allTimeStandings.length}</span><span class="label">Franchises</span></div>
-    <div class="stat"><span class="num">${champs.length}</span><span class="label">Titles awarded</span></div>
-    <div class="stat"><span class="num">${leader ? leader.team : "–"}</span><span class="label">All-time win %</span></div>
-  `;
 }
 
 /* ---------- Tabs ---------- */
