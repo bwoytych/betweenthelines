@@ -496,10 +496,21 @@
    filled-in standings table yet are skipped automatically.
 
    TO ADD A NEW SEASON TAB: just create it in the sheet, named for the
-   year (e.g. "2026"), following the same layout. It will appear on
-   the site the first time it has at least two standings rows filled
-   in. If you ever add a tab named something other than a plain year
-   number beyond CANDIDATE_YEAR_RANGE below, extend that range.
+   year (e.g. "2026"), following the same layout, and fill in its
+   standings once the season is done (or as it progresses). It'll show
+   up on its own — the year range below always runs through the
+   current calendar year, so there's nothing to edit here when a new
+   season starts.
+
+   A tab is only shown once it has at least two standings rows filled
+   in, so empty future-year placeholder tabs (2027, 2028, etc., if you
+   pre-create them) stay hidden until you actually use them. As an
+   extra safety net, if two different year tabs ever come back with
+   byte-identical data (e.g. a template tab that still has an old
+   year's numbers left in it, or a request for a tab that doesn't
+   exist bouncing back to some other sheet), the later one is skipped
+   rather than shown — check the browser console if a year goes
+   missing unexpectedly.
 
    BRACKET IMAGES / PLAYER PHOTOS: still static files in this repo
    (images/<year>_bracket.png, Player_Profiles/<Team>.png) — the sheet
@@ -507,7 +518,11 @@
    ===================================================================== */
 
 const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
-const CANDIDATE_YEAR_RANGE = [2016, 2035]; // extend the upper bound if you add tabs past this
+const LEAGUE_FOUNDED = 2016;
+// Always scans from LEAGUE_FOUNDED through the current calendar year —
+// never further, so a tab that doesn't exist yet (like next year's,
+// before you've created it) is never requested at all.
+const CANDIDATE_YEAR_RANGE = [LEAGUE_FOUNDED, new Date().getFullYear()];
 
 const PLAYERS = [
   {team:"Ben",    photo:"Player_Profiles/Ben.png",    expansion:"Player_Profiles/Ben_Expansion.png"},
@@ -536,7 +551,7 @@ async function fetchYearGrid(year){
   // A tab that doesn't exist comes back as an HTML error page, not CSV.
   if(/^\s*</.test(text)) throw new Error("tab not found");
   const parsed = Papa.parse(text, {skipEmptyLines:false});
-  return parsed.data;
+  return {grid: parsed.data, rawText: text.trim()};
 }
 
 function cell(grid, r, c){
@@ -636,16 +651,26 @@ async function loadSeasons(){
   const years = [];
   for(let y=CANDIDATE_YEAR_RANGE[0]; y<=CANDIDATE_YEAR_RANGE[1]; y++) years.push(y);
 
-  const settled = await Promise.allSettled(years.map(async y => ({y, grid: await fetchYearGrid(y)})));
+  const settled = await Promise.allSettled(years.map(async y => ({y, ...(await fetchYearGrid(y))})));
 
   const seasons = {};
   let anyFetchAttempted = false;
   let allFailed = true;
+  const seenRawText = new Map(); // rawText -> year it was first seen for
 
+  // Ascending order (years[] is built ascending) so an earlier year always
+  // wins a dedupe tie over a later one.
   settled.forEach(res => {
     if(res.status !== "fulfilled") return;
     anyFetchAttempted = true;
-    const {y, grid} = res.value;
+    const {y, grid, rawText} = res.value;
+
+    if(seenRawText.has(rawText)){
+      console.warn(`Between the Lines: tab "${y}" returned the exact same data as tab "${seenRawText.get(rawText)}" — skipping it. Check that "${y}" isn't an empty template still holding old data, or that it actually exists as a tab.`);
+      return;
+    }
+    seenRawText.set(rawText, y);
+
     const standings = parseStandings(grid);
     if(standings.length < 2) return; // tab exists but season hasn't started / isn't filled in yet
     allFailed = false;
