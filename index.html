@@ -282,30 +282,84 @@
   }
 
   /* ---------- Players ---------- */
-  .player-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap:18px;
+  .profile-header{
+    display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;
+    margin-bottom:28px;
   }
-  .player-card{
-    background:var(--surface);
+  .profile-photo{
+    width:150px; height:150px; object-fit:cover;
     border:1px solid var(--line);
+    background:var(--surface-2);
+    flex-shrink:0;
+  }
+  .profile-title{ flex:1; min-width:220px; }
+  .profile-title h2{ margin:0 0 6px; }
+  .profile-sub{ color:var(--chalk-dim); font-size:14px; margin:0 0 14px; }
+  .era-toggle{
+    display:inline-flex;
+    border:1px solid var(--line-strong);
     border-radius:2px;
     overflow:hidden;
   }
-  .player-photos{ display:grid; grid-template-columns:1fr; }
-  .player-photos.has-two{ grid-template-columns:1fr 1fr; }
-  .player-photos img{ width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--surface-2); }
-  .player-name{
-    padding:12px 14px 4px;
-    font-weight:700;
-    font-size:15px;
-  }
-  .player-meta{
-    padding:0 14px 14px;
-    font-size:12.5px;
+  .era-toggle button{
+    appearance:none; border:none; cursor:pointer;
+    background:var(--surface);
     color:var(--chalk-dim);
+    font-family:inherit; font-size:13px; font-weight:600;
+    padding:8px 16px;
   }
+  .era-toggle button+button{ border-left:1px solid var(--line-strong); }
+  .era-toggle button.active{ background:var(--gold); color:#141A0F; }
+
+  .metric-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(130px,1fr));
+    gap:12px;
+    margin-bottom:28px;
+  }
+  .metric-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    padding:14px 16px;
+    border-radius:2px;
+  }
+  .metric-card .mv{
+    font-family:"Anton", sans-serif;
+    font-size:26px;
+    color:var(--gold-bright);
+    line-height:1;
+  }
+  .metric-card .ml{ font-size:12px; color:var(--chalk-dim); margin-top:6px; }
+
+  .stat-row{ display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+  .stat-row .stat-label{ font-size:13px; color:var(--chalk-dim); width:190px; flex-shrink:0; }
+  .stat-row .bar-track{ flex:1; height:7px; background:var(--surface-2); border-radius:4px; overflow:hidden; }
+  .stat-row .bar-fill{ height:100%; background:var(--gold); }
+  .stat-row .stat-value{ font-size:13px; font-variant-numeric:tabular-nums; width:80px; text-align:right; flex-shrink:0; color:var(--chalk); }
+
+  .mini-bars{ display:flex; align-items:flex-end; gap:6px; height:120px; margin-top:12px; }
+  .mini-bars .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .mini-bars .bar-val{ font-size:10px; color:var(--chalk-dim); margin-bottom:3px; white-space:nowrap; }
+  .mini-bars .bar{ width:100%; background:var(--gold-dim); border-radius:1px 1px 0 0; }
+  .mini-bars .bar.hi{ background:var(--gold-bright); }
+  .mini-bars .bar-year{ font-size:10px; color:var(--chalk-faint); margin-top:5px; }
+
+  .h2h-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:8px; }
+  .h2h-list .h2h-item{
+    background:var(--surface); border:1px solid var(--line);
+    padding:10px 12px; border-radius:2px;
+  }
+  .h2h-list .h2h-item .opp{ font-size:12px; color:var(--chalk-dim); }
+  .h2h-list .h2h-item .rec{ font-weight:700; font-variant-numeric:tabular-nums; font-size:15px; }
+
+  .position-hist{ display:flex; align-items:flex-end; gap:8px; height:110px; margin-top:12px; }
+  .position-hist .ph-col{ flex:1; display:flex; flex-direction:column-reverse; align-items:center; height:100%; }
+  .position-hist .ph-seg.before{ background:var(--chalk-faint); }
+  .position-hist .ph-seg.after{ background:var(--gold); }
+  .position-hist .ph-seg{ width:100%; }
+  .position-hist .ph-label{ font-size:10px; color:var(--chalk-faint); margin-top:5px; }
+  .legend-row{ display:flex; gap:16px; font-size:12px; color:var(--chalk-dim); margin-top:10px; }
+  .legend-row .sw{ width:9px; height:9px; display:inline-block; margin-right:5px; vertical-align:middle; }
 
   footer{
     border-top:1px solid var(--line);
@@ -451,11 +505,8 @@
 
   <!-- PLAYERS -->
   <section id="panel-players" class="panel">
-    <section class="block">
-      <h2 class="h">Player profiles</h2>
-      <p class="sub">Full write-ups live on the <a href="player-profiles.html">player profiles page</a>.</p>
-      <div class="player-grid" id="playerGrid"></div>
-    </section>
+    <div class="year-rail" id="playerRail"><span class="loading-note">Loading…</span></div>
+    <div id="playerContent"></div>
   </section>
 
 </main>
@@ -524,16 +575,26 @@ const LEAGUE_FOUNDED = 2016;
 // before you've created it) is never requested at all.
 const CANDIDATE_YEAR_RANGE = [LEAGUE_FOUNDED, new Date().getFullYear()];
 
-const PLAYERS = [
-  {team:"Ben",    photo:"Player_Profiles/Ben.png",    expansion:"Player_Profiles/Ben_Expansion.png"},
-  {team:"Carter", photo:"Player_Profiles/Carter.png", expansion:"Player_Profiles/Carter_Expansion.png"},
-  {team:"Jake",   photo:"Player_Profiles/Jake.png",   expansion:"Player_Profiles/Jake_Expansion.png"},
-  {team:"Jimmy",  photo:"Player_Profiles/Jimmy.png",  expansion:"Player_Profiles/Jimmy_Expansion.png"},
-  {team:"Gibby",  photo:"Player_Profiles/Gibby.png",  expansion:"Player_Profiles/Gibby_Expansion.png"},
-  {team:"Swift",  photo:"Player_Profiles/Swift.png",  expansion:"Player_Profiles/Swift_Expansion.png"},
-  {team:"Kyle",   photo:"Player_Profiles/Kyle.png"},
-  {team:"Collin", photo:"Player_Profiles/Collin.png"},
-];
+// Current roster shown on the Players tab (in rail order).
+const PLAYERS = ["Ben","Carter","Jake","Jimmy","Gibby","Swift","Kyle","Collin"];
+
+/* ---------- League structure the sheet doesn't encode ---------- */
+// Divisions rarely change, so they're kept here rather than parsed from the
+// sheet. A team only needs to appear in whichever list it's ever played in —
+// Leahy (2016-2018) and Gibby (2019+) never overlap, so both can sit in the
+// same division list with no year logic needed. If divisions are ever
+// realigned, just edit these two lists.
+const DIVISION_A = ["Ben", "Swift", "Leahy", "Gibby", "Kyle"];
+const DIVISION_B = ["Jake", "Carter", "Jimmy", "Collin"];
+function divisionOf(team){
+  if(DIVISION_A.includes(team)) return "A";
+  if(DIVISION_B.includes(team)) return "B";
+  return null;
+}
+
+// The year the league expanded from 6 teams to 8 — splits "career" from
+// "since expansion" stats on each player's profile.
+const EXPANSION_YEAR = 2022;
 
 /* ===================================================================== */
 /* Sheet fetching + generic block parsing                                */
@@ -739,6 +800,95 @@ function aggregateAllTime(seasons){
   return {allTimeStandings, allTimeH2H, champions, teamOrder};
 }
 
+/* ---------- Per-player profile stats ----------
+   Everything here is derived from the same season data already loaded —
+   nothing new to maintain. Pass minYear = EXPANSION_YEAR to get the
+   "since expansion" slice instead of career. */
+function computePlayerStats(team, seasons, minYear){
+  const years = Object.keys(seasons).map(Number).sort((a,b)=>a-b).filter(y=>y>=minYear);
+  const relevantYears = years.filter(y => seasons[y].standings.some(r=>r.team===team));
+
+  let w=0,l=0,pf=0,pa=0;
+  let champWins=0, champApps=0, playoffApps=0, loserBowlApps=0, timesLast=0, divisionTitles=0;
+  let divW=0, divL=0, nonDivW=0, nonDivL=0;
+  let mostPF=-Infinity, leastPF=Infinity, biggestWinMargin=-Infinity, biggestLossMargin=-Infinity;
+  const champYears=[];
+  const winsPerSeason=[];
+  const pfPerSeason=[];
+  const finalPositions=[]; // {year, place, n}
+  const h2hTotals={};
+
+  relevantYears.forEach(year=>{
+    const s = seasons[year];
+    const row = s.standings.find(r=>r.team===team);
+    if(row){
+      w+=row.w; l+=row.l; pf+=row.pf; pa+=row.pa;
+      winsPerSeason.push({year, w:row.w});
+      pfPerSeason.push({year, pf:row.pf});
+    }
+
+    const n = s.finalStandings.length;
+    const idx = s.finalStandings.indexOf(team);
+    if(idx > -1){
+      finalPositions.push({year, place: idx+1, n});
+      if(idx === 0){ champWins++; champYears.push(year); }
+      if(idx <= 1) champApps++;
+      if(idx < n-2) playoffApps++;      // bottom two miss the playoffs...
+      if(idx >= n-2) loserBowlApps++;   // ...and play the loser bowl instead
+      if(idx === n-1) timesLast++;
+    }
+
+    // Division title: best (lowest) regular-season standings rank among
+    // whichever division-mates actually played that year.
+    const myDiv = divisionOf(team);
+    if(myDiv){
+      const divTeamsInOrder = s.standings.filter(r => divisionOf(r.team) === myDiv).map(r => r.team);
+      if(divTeamsInOrder[0] === team) divisionTitles++;
+    }
+
+    // Head-to-head totals, split into division / non-division.
+    const opps = s.h2h[team] || {};
+    Object.entries(opps).forEach(([opp, rec])=>{
+      const [ww, ll] = rec.split("-").map(Number);
+      if(Number.isNaN(ww) || Number.isNaN(ll)) return;
+      h2hTotals[opp] = h2hTotals[opp] || {w:0,l:0};
+      h2hTotals[opp].w += ww; h2hTotals[opp].l += ll;
+      if(myDiv && divisionOf(opp) === myDiv){ divW += ww; divL += ll; }
+      else { nonDivW += ww; nonDivL += ll; }
+    });
+
+    // Single-game extremes, from that season's game log.
+    (s.games || []).forEach(g=>{
+      let mine=null, theirs=null;
+      if(g.teamA === team){ mine=g.scoreA; theirs=g.scoreB; }
+      else if(g.teamB === team){ mine=g.scoreB; theirs=g.scoreA; }
+      if(mine==null || Number.isNaN(mine)) return;
+      if(mine > mostPF) mostPF = mine;
+      if(mine < leastPF) leastPF = mine;
+      const margin = mine - theirs;
+      if(margin > 0 && margin > biggestWinMargin) biggestWinMargin = margin;
+      if(margin < 0 && (-margin) > biggestLossMargin) biggestLossMargin = -margin;
+    });
+  });
+
+  const h2h = {};
+  Object.entries(h2hTotals).forEach(([opp, rec]) => { h2h[opp] = `${rec.w}-${rec.l}`; });
+
+  return {
+    team, years: relevantYears, seasonsPlayed: relevantYears.length,
+    record: {w, l, pf, pa},
+    champWins, champYears, champApps,
+    playoffApps, loserBowlApps, timesLast, divisionTitles,
+    divisionRecord: {w:divW, l:divL},
+    nonDivisionRecord: {w:nonDivW, l:nonDivL},
+    mostPF: mostPF===-Infinity ? null : mostPF,
+    leastPF: leastPF===Infinity ? null : leastPF,
+    biggestWinMargin: biggestWinMargin===-Infinity ? null : biggestWinMargin,
+    biggestLossMargin: biggestLossMargin===-Infinity ? null : biggestLossMargin,
+    winsPerSeason, pfPerSeason, finalPositions, h2h,
+  };
+}
+
 /* ===================================================================== */
 /* Rendering (unchanged in spirit from the static version)               */
 /* ===================================================================== */
@@ -937,17 +1087,175 @@ function renderSeason(){
 }
 
 /* ---------- Players ---------- */
-function renderPlayers(){
-  document.getElementById("playerGrid").innerHTML = PLAYERS.map(p=>`
-    <div class="player-card">
-      <div class="player-photos ${p.expansion ? 'has-two' : ''}">
-        <img src="${p.photo}" alt="${p.team}" loading="lazy">
-        ${p.expansion ? `<img src="${p.expansion}" alt="${p.team}, since expansion" loading="lazy">` : ""}
-      </div>
-      <div class="player-name">${p.team}</div>
-      <div class="player-meta">${ringCount(p.team)} title${ringCount(p.team)===1?'':'s'}</div>
+let currentPlayer = null;
+let currentEra = "career"; // "career" | "expansion"
+
+function renderPlayerRail(){
+  document.getElementById("playerRail").innerHTML = PLAYERS.map(p =>
+    `<button data-team="${p}" class="${p===currentPlayer?'active':''}">${p}</button>`
+  ).join("");
+  document.querySelectorAll("#playerRail button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentPlayer = btn.dataset.team;
+      currentEra = "career";
+      renderPlayerRail();
+      renderPlayerProfile();
+    });
+  });
+}
+
+function statBar(label, value, of){
+  const pct = of ? Math.round((value/of)*100) : 0;
+  return `
+    <div class="stat-row">
+      <span class="stat-label">${label}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span>
+      <span class="stat-value">${value} of ${of}</span>
+    </div>`;
+}
+
+function miniBarChart(data, key, fmt){
+  const max = Math.max(...data.map(d=>d[key]), 1);
+  return `
+    <div class="mini-bars">
+      ${data.map(d => `
+        <div class="bar-col">
+          <span class="bar-val">${fmt ? fmt(d[key]) : d[key]}</span>
+          <div class="bar ${d[key]===max?'hi':''}" style="height:${Math.max((d[key]/max)*100,3)}%"></div>
+          <span class="bar-year">${d.year}</span>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function positionHistogram(finalPositions){
+  const maxN = Math.max(...finalPositions.map(p=>p.n), 1);
+  return `
+    <div class="position-hist">
+      ${Array.from({length:maxN}, (_,i)=>i+1).map(place=>{
+        const hits = finalPositions.filter(p=>p.place===place);
+        const before = hits.filter(h=>h.year < EXPANSION_YEAR).length;
+        const after = hits.filter(h=>h.year >= EXPANSION_YEAR).length;
+        const total = before+after;
+        const maxCount = Math.max(...Array.from({length:maxN},(_,i)=>{
+          const ph = finalPositions.filter(p=>p.place===i+1).length;
+          return ph;
+        }), 1);
+        const heightPct = total ? Math.max((total/maxCount)*100, 8) : 0;
+        const beforePct = total ? (before/total)*100 : 0;
+        const afterPct = total ? (after/total)*100 : 0;
+        return `
+          <div class="ph-col" style="height:${heightPct}%">
+            ${before ? `<div class="ph-seg before" style="height:${beforePct}%"></div>` : ""}
+            ${after ? `<div class="ph-seg after" style="height:${afterPct}%"></div>` : ""}
+          </div>`;
+      }).join("")}
     </div>
-  `).join("");
+    <div style="display:flex; gap:10px; margin-top:6px;">
+      ${Array.from({length:maxN}, (_,i)=>`<div style="flex:1; text-align:center; font-size:10px; color:var(--chalk-faint);">${i+1}${i===0?'st':i===1?'nd':i===2?'rd':'th'}</div>`).join("")}
+    </div>
+    <div class="legend-row">
+      <span><span class="sw" style="background:var(--chalk-faint)"></span>Before ${EXPANSION_YEAR}</span>
+      <span><span class="sw" style="background:var(--gold)"></span>${EXPANSION_YEAR}+</span>
+    </div>`;
+}
+
+function renderPlayerProfile(){
+  const container = document.getElementById("playerContent");
+  if(!currentPlayer){ container.innerHTML = ""; return; }
+
+  const minYear = currentEra === "expansion" ? EXPANSION_YEAR : LEAGUE_FOUNDED;
+  const stats = computePlayerStats(currentPlayer, LIVE.seasons, minYear);
+  const opponents = Object.keys(stats.h2h).sort();
+
+  container.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-title">
+        <h2 class="h" style="font-size:32px;">${currentPlayer}</h2>
+        <p class="profile-sub">${stats.seasonsPlayed} season${stats.seasonsPlayed===1?'':'s'} · ${stats.champWins} title${stats.champWins===1?'':'s'}${stats.champYears.length ? ` (${stats.champYears.join(', ')})` : ''}</p>
+        <div class="era-toggle">
+          <button data-era="career" class="${currentEra==='career'?'active':''}">Career</button>
+          <button data-era="expansion" class="${currentEra==='expansion'?'active':''}">Since ${EXPANSION_YEAR}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card"><div class="mv">${stats.record.w}-${stats.record.l}</div><div class="ml">Overall record</div></div>
+      <div class="metric-card"><div class="mv">${fmtPct(stats.record.w, stats.record.l)}</div><div class="ml">Win %</div></div>
+      <div class="metric-card"><div class="mv">${stats.champWins}${ringsHTML(stats.champWins)}</div><div class="ml">Championships</div></div>
+      <div class="metric-card"><div class="mv">${fmtNum(stats.record.pf)}</div><div class="ml">Points for</div></div>
+      <div class="metric-card"><div class="mv">${fmtNum(stats.record.pa)}</div><div class="ml">Points against</div></div>
+    </div>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Performance breakdown</h2>
+      ${statBar("Playoff appearances", stats.playoffApps, stats.seasonsPlayed)}
+      ${statBar("Championship appearances", stats.champApps, stats.seasonsPlayed)}
+      ${statBar("Division titles", stats.divisionTitles, stats.seasonsPlayed)}
+      ${statBar("Loser bowl appearances", stats.loserBowlApps, stats.seasonsPlayed)}
+      ${statBar("Times finished last", stats.timesLast, stats.seasonsPlayed)}
+    </section>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Single-game extremes</h2>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="mv">${stats.mostPF!=null ? fmtNum(stats.mostPF) : '–'}</div><div class="ml">Highest score</div></div>
+        <div class="metric-card"><div class="mv">${stats.leastPF!=null ? fmtNum(stats.leastPF) : '–'}</div><div class="ml">Lowest score</div></div>
+        <div class="metric-card"><div class="mv">${stats.biggestWinMargin!=null ? fmtNum(stats.biggestWinMargin) : '–'}</div><div class="ml">Biggest win margin</div></div>
+        <div class="metric-card"><div class="mv">${stats.biggestLossMargin!=null ? fmtNum(stats.biggestLossMargin) : '–'}</div><div class="ml">Biggest loss margin</div></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Wins per season</h2>
+      ${miniBarChart(stats.winsPerSeason, "w")}
+    </section>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Points for, per season</h2>
+      ${miniBarChart(stats.pfPerSeason, "pf", v=>fmtNum(v).split(".")[0])}
+    </section>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Division &amp; non-division record</h2>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="mv">${stats.divisionRecord.w}-${stats.divisionRecord.l}</div><div class="ml">Division record</div></div>
+        <div class="metric-card"><div class="mv">${stats.nonDivisionRecord.w}-${stats.nonDivisionRecord.l}</div><div class="ml">Non-division record</div></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Head-to-head</h2>
+      <div class="h2h-list">
+        ${opponents.map(opp => `
+          <div class="h2h-item">
+            <div class="opp">Vs ${opp}</div>
+            <div class="rec">${stats.h2h[opp]}</div>
+          </div>
+        `).join("") || `<p class="loading-note">No matchups yet in this window.</p>`}
+      </div>
+    </section>
+
+    ${currentEra === "career" ? `
+    <section class="block">
+      <h2 class="h" style="font-size:18px;">Final position, every season</h2>
+      ${positionHistogram(stats.finalPositions)}
+    </section>` : ""}
+  `;
+
+  document.querySelectorAll(".era-toggle button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentEra = btn.dataset.era;
+      renderPlayerProfile();
+    });
+  });
+}
+
+function renderPlayers(){
+  renderPlayerRail();
+  if(!currentPlayer && PLAYERS.length) currentPlayer = PLAYERS[0];
+  renderPlayerProfile();
 }
 
 /* ---------- Hero stats ---------- */
