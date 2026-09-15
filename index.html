@@ -752,17 +752,22 @@ const RECORD_BOOK_POSITIONS = [
 // Each position's table is four columns (Year, Name, Points, Owner) sitting
 // under a merged header cell with the position's name. Found by label, same
 // as everything else, so reordering or resizing these tables in the sheet
-// doesn't break anything here.
+// doesn't break anything here. Matching is normalized (case, spacing, and
+// punctuation stripped) so small formatting differences in the sheet's
+// header text don't break the lookup.
+function normalizeLabel(s){
+  return String(s || "").toLowerCase().replace(/[^a-z]/g, "");
+}
 function parseRecordBookPosition(grid, label){
-  const head = findCell(grid, v => v.toLowerCase() === label.toLowerCase());
+  const target = normalizeLabel(label);
+  const head = findCell(grid, v => normalizeLabel(v) === target);
   if(!head) return [];
-  // The "Year" sub-header sits in the same column, a row or two below the
-  // merged position label — search a few rows down rather than assuming
-  // exactly one row, in case the sheet's header is laid out slightly
-  // differently.
+  // The "Year" sub-header sits in the same column, a few rows below the
+  // merged position label — search down rather than assuming exactly one
+  // row, in case the sheet's header is laid out slightly differently.
   let subRow = null;
-  for(let r=head.r+1; r<=head.r+3; r++){
-    if(cell(grid, r, head.c).toLowerCase() === "year"){ subRow = r; break; }
+  for(let r=head.r+1; r<=head.r+5; r++){
+    if(normalizeLabel(cell(grid, r, head.c)) === "year"){ subRow = r; break; }
   }
   if(subRow === null) return [];
 
@@ -816,7 +821,13 @@ async function loadRecordBook(){
   const {grid} = await fetchSheetGrid(RECORD_BOOK_SHEET_NAME);
   const positions = parseRecordBook(grid);
   const gotAnything = Object.values(positions).some(rows => rows.length > 0);
-  if(!gotAnything) throw new Error("Record Book tab found, but no position tables could be read from it.");
+  if(!gotAnything){
+    // Dump what the sheet's first several rows actually look like, so a
+    // mismatch (wrong header text, unexpected column, etc.) is diagnosable
+    // from the browser console instead of a guess.
+    console.warn("Between the Lines: Record Book — no position headers matched. First 6 rows of the fetched sheet:", grid.slice(0, 6));
+    throw new Error("Record Book tab found, but no position tables could be read from it. See console for the raw row data.");
+  }
   return positions;
 }
 
