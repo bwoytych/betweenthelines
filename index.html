@@ -1384,6 +1384,7 @@ function renderPlayers(){
 
 /* ---------- Record Book ---------- */
 let recordBookData = null; // {positions, leaderboard} once loaded
+let recordBookError = null; // set if the fetch/parse fails, so the error survives to render time
 let currentRecordView = "leaderboard"; // "leaderboard" | "qb" | "rb" | "wr" | "te"
 
 function renderRecordBookNav(){
@@ -1402,6 +1403,12 @@ function renderRecordBookNav(){
 
 function renderRecordBookContent(){
   const container = document.getElementById("recordBookContent");
+  if(recordBookError){
+    container.innerHTML = `<p class="loading-note">Couldn't load the Record Book tab: ${recordBookError}.
+      Check that a tab named "${RECORD_BOOK_SHEET_NAME}" exists and is shared the same way as the
+      season tabs. Open the browser console for more detail.</p>`;
+    return;
+  }
   if(!recordBookData){
     container.innerHTML = `<p class="loading-note">Loading the Record Book tab…</p>`;
     return;
@@ -1480,11 +1487,10 @@ async function initRecordBook(){
     });
     const leaderboard = computeRecordBookLeaderboard(positions, LIVE.champions);
     recordBookData = {positions, leaderboard};
+    recordBookError = null;
   } catch(err){
     console.error("Between the Lines: Record Book load failed", err);
-    document.getElementById("recordBookContent").innerHTML = `
-      <p class="loading-note">Couldn't load the Record Book tab: ${(err && err.message) || err}. Check that a tab named
-      "${RECORD_BOOK_SHEET_NAME}" exists and is shared the same way as the season tabs.</p>`;
+    recordBookError = (err && err.message) || String(err);
   }
   renderRecordBookNav();
   renderRecordBookContent();
