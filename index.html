@@ -1,760 +1,1019 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Between the Lines — Fantasy History</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Between the Lines — Fantasy Football</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1811;
+    --bg-2:#0B120D;
+    --surface:#17231A;
+    --surface-2:#1D2B20;
+    --line: rgba(232,228,216,0.12);
+    --line-strong: rgba(232,228,216,0.22);
+    --chalk:#EDEAE0;
+    --chalk-dim:#9CAA9C;
+    --chalk-faint:#6E7C6F;
+    --gold:#C9A227;
+    --gold-bright:#E4BE45;
+    --gold-dim:#8A7220;
+    --max: 1080px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(201,162,39,0.08), transparent 60%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:"Public Sans", system-ui, sans-serif;
+    font-feature-settings:"tnum" 1, "lnum" 1;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--gold-bright);}
+  img{max-width:100%; display:block;}
+
+  ::selection{ background:var(--gold); color:#141A0F; }
+
+  :focus-visible{
+    outline: 2px solid var(--gold-bright);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 24px; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    padding:64px 0 40px;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+    background:
+      repeating-linear-gradient(90deg, transparent 0 78px, var(--line) 78px 79px),
+      linear-gradient(180deg, rgba(59,110,78,0.14), transparent 60%);
+  }
+  .hero .wrap{ position:relative; }
+  .eyebrow-row{
+    display:flex; align-items:center; gap:10px;
+    color:var(--chalk-dim); font-size:13px; margin-bottom:18px;
+  }
+  .eyebrow-row .dot{ width:6px; height:6px; border-radius:50%; background:var(--gold); }
+  h1.wordmark{
+    font-family:"Anton", sans-serif;
+    font-weight:400;
+    font-size:clamp(40px, 8vw, 84px);
+    line-height:0.94;
+    letter-spacing:0.3px;
+    margin:0 0 6px;
+    color:var(--chalk);
+  }
+  h1.wordmark span{ color:var(--gold); }
+  .hero p.tag{
+    font-size:17px;
+    color:var(--chalk-dim);
+    max-width:46ch;
+    margin:0 0 30px;
+  }
+  .stat-strip{
+    display:flex; flex-wrap:wrap; gap:0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  .stat{
+    flex:1 1 140px;
+    padding:16px 20px;
+    border-right:1px solid var(--line);
+  }
+  .stat:last-child{ border-right:none; }
+  .stat .num{
+    font-family:"Anton", sans-serif;
+    font-size:30px;
+    color:var(--gold-bright);
+    line-height:1;
+    display:block;
+    margin-bottom:4px;
+  }
+  .stat .label{ font-size:13px; color:var(--chalk-dim); }
+
+  /* ---------- Nav ---------- */
+  .tabnav{
+    position:sticky; top:0; z-index:20;
+    background:rgba(15,24,17,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .tabnav .wrap{ display:flex; gap:4px; }
+  .tabnav button{
+    appearance:none; border:none; background:transparent;
+    color:var(--chalk-dim);
+    font-family:inherit; font-size:15px; font-weight:600;
+    padding:16px 16px 14px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .tabnav button:hover{ color:var(--chalk); }
+  .tabnav button[aria-selected="true"]{
+    color:var(--chalk);
+    border-bottom-color:var(--gold);
+  }
+
+  main{ padding:40px 0 100px; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  section.block{ margin-bottom:52px; }
+  h2.h{
+    font-family:"Anton", sans-serif;
+    font-weight:400;
+    font-size:26px;
+    letter-spacing:0.2px;
+    margin:0 0 4px;
+    color:var(--chalk);
+  }
+  p.sub{ color:var(--chalk-dim); font-size:14px; margin:0 0 20px; }
+
+  /* ---------- Tables ---------- */
+  .table-scroll{
+    overflow-x:auto;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:var(--surface);
+  }
+  table{ width:100%; border-collapse:collapse; font-size:14px; min-width:560px; }
+  thead th{
+    text-align:left;
+    font-weight:600;
+    color:var(--chalk-dim);
+    font-size:12.5px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line-strong);
+    white-space:nowrap;
+    position:sticky; top:0;
+    background:var(--surface);
+  }
+  thead th.sortable{ cursor:pointer; user-select:none; }
+  thead th.sortable:hover{ color:var(--chalk); }
+  thead th .arrow{ margin-left:5px; opacity:0.5; font-size:10px; }
+  thead th[aria-sort="ascending"] .arrow,
+  thead th[aria-sort="descending"] .arrow{ opacity:1; color:var(--gold-bright); }
+  tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  td.team{ font-weight:600; }
+  .rings{ display:inline-flex; gap:3px; vertical-align:middle; margin-left:6px; }
+  .rings .r{
+    width:8px; height:8px; border-radius:50%;
+    border:2px solid var(--gold);
+    display:inline-block;
+  }
+  .rank-cell{ color:var(--chalk-dim); font-variant-numeric:tabular-nums; }
+
+  /* H2H matrix */
+  .h2h td, .h2h th{ text-align:center; }
+  .h2h th.rowlabel, .h2h td.rowlabel{ text-align:left; position:sticky; left:0; background:var(--surface); }
+  .h2h tbody tr:hover td.rowlabel{ background:var(--surface-2); }
+  .h2h td.self{ color:var(--chalk-faint); }
+  .h2h td.empty{ color:var(--chalk-faint); }
+
+  /* ---------- Champions strip ---------- */
+  .champs{
+    display:flex; flex-wrap:wrap; gap:10px;
+  }
+  .champ-chip{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    padding:10px 14px;
+    border-radius:2px;
+    min-width:120px;
+  }
+  .champ-chip .yr{ font-size:12px; color:var(--chalk-dim); font-variant-numeric:tabular-nums; }
+  .champ-chip .nm{ font-weight:700; }
+  .champ-chip .ring-icon{
+    width:14px; height:14px; border-radius:50%;
+    border:2.5px solid var(--gold-bright);
+    flex-shrink:0;
+  }
+
+  /* ---------- Season selector ---------- */
+  .year-rail{
+    display:flex; gap:6px; flex-wrap:wrap;
+    margin-bottom:28px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+  }
+  .year-rail button{
+    appearance:none; cursor:pointer;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--chalk-dim);
+    font-family:"Anton", sans-serif;
+    font-size:16px;
+    padding:9px 14px;
+    border-radius:2px;
+    transition: all .15s ease;
+  }
+  .year-rail button:hover{ color:var(--chalk); border-color:var(--line-strong); }
+  .year-rail button.active{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#141A0F;
+  }
+
+  .season-grid{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:32px;
+  }
+  @media (max-width: 820px){
+    .season-grid{ grid-template-columns:1fr; }
+  }
+
+  .podium{
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .podium-row{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+  .podium-row .place{
+    font-family:"Anton", sans-serif;
+    font-size:18px;
+    color:var(--gold-dim);
+    width:34px;
+    text-align:center;
+    flex-shrink:0;
+  }
+  .podium-row:nth-child(1) .place{ color:var(--gold-bright); }
+  .podium-row:nth-child(1){ border-color:var(--gold-dim); }
+  .podium-row .nm{ font-weight:600; }
+
+  .bracket-frame{
+    margin-top:14px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    padding:10px;
+    border-radius:2px;
+  }
+  .bracket-frame img{ width:100%; border-radius:1px; }
+  .bracket-missing{
+    padding:40px 16px; text-align:center; color:var(--chalk-faint); font-size:13px;
+  }
+
+  /* ---------- Players ---------- */
+  .player-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap:18px;
+  }
+  .player-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .player-photos{ display:grid; grid-template-columns:1fr; }
+  .player-photos.has-two{ grid-template-columns:1fr 1fr; }
+  .player-photos img{ width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--surface-2); }
+  .player-name{
+    padding:12px 14px 4px;
+    font-weight:700;
+    font-size:15px;
+  }
+  .player-meta{
+    padding:0 14px 14px;
+    font-size:12.5px;
+    color:var(--chalk-dim);
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:28px 0 60px;
+    color:var(--chalk-faint);
+    font-size:13px;
+  }
+  footer a{ color:var(--chalk-dim); }
+
+  @media (max-width:600px){
+    .hero{ padding:44px 0 28px; }
+    .stat{ flex:1 1 45%; }
+    table{ font-size:13px; min-width:480px; }
+  }
+
+  .status-bar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin-top:22px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:13px;
+    color:var(--chalk-dim);
+  }
+  .status-bar .dot-live{
+    width:7px; height:7px; border-radius:50%;
+    background:#4E9A5C;
+    display:inline-block;
+    flex-shrink:0;
+  }
+  .status-bar .dot-live.stale{ background:var(--gold); }
+  .status-bar .dot-live.err{ background:#B23A2E; }
+  .status-bar button{
+    appearance:none; cursor:pointer;
+    background:var(--surface);
+    border:1px solid var(--line-strong);
+    color:var(--chalk);
+    font-family:inherit; font-size:12.5px; font-weight:600;
+    padding:6px 12px;
+    border-radius:2px;
+  }
+  .status-bar button:hover{ border-color:var(--gold-dim); }
+  .status-bar button:disabled{ opacity:0.5; cursor:default; }
+
+  .error-banner{
+    display:none;
+    background:rgba(178,58,46,0.12);
+    border:1px solid rgba(178,58,46,0.4);
+    color:#E7B5AE;
+    padding:14px 16px;
+    border-radius:2px;
+    font-size:13.5px;
+    margin-bottom:24px;
+  }
+  .error-banner.show{ display:block; }
+  .error-banner code{
+    background:rgba(0,0,0,0.25);
+    padding:1px 5px;
+    border-radius:2px;
+    font-size:12px;
+  }
+
+  .loading-note{
+    color:var(--chalk-faint);
+    font-size:13.5px;
+    padding:20px 0;
+  }
+</style>
 </head>
 <body>
-<header>
-  <h1>Between the Lines — Fantasy History</h1>
-  <p class="subtitle">Standings, Head-to-Head, Final Standings, and Playoff Brackets</p>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow-row"><span class="dot"></span><span id="heroKicker">Fantasy football, since 2016</span></div>
+    <h1 class="wordmark">Between the<br><span>Lines.</span></h1>
+    <p class="tag" id="heroTag">Every season, every matchup, every ring — the full record book.</p>
+    <div class="stat-strip" id="statStrip"></div>
+    <div class="status-bar" id="statusBar">
+      <span class="dot-live" id="statusDot"></span>
+      <span id="statusText">Loading data from the league spreadsheet…</span>
+      <button id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </div>
 </header>
 
-<!-- ===== Navigation ===== -->
-  <nav class="top-nav">
-  <div class="nav-center">
-    <button class="nav-btn" data-tab="alltime">All Time</button>
-    <div class="dropdown">
-      <button class="dropbtn">Years ▾</button>
-      <div class="dropdown-content">
-        <button class="nav-btn" data-tab="2016">2016</button>
-        <button class="nav-btn" data-tab="2017">2017</button>
-        <button class="nav-btn" data-tab="2018">2018</button>
-        <button class="nav-btn" data-tab="2019">2019</button>
-        <button class="nav-btn" data-tab="2020">2020</button>
-        <button class="nav-btn" data-tab="2021">2021</button>
-        <button class="nav-btn" data-tab="2022">2022</button>
-        <button class="nav-btn" data-tab="2023">2023</button>
-        <button class="nav-btn" data-tab="2024">2024</button>
-        <button class="nav-btn" data-tab="2025">2025</button>
-
-        <!-- add other years here -->
-      </div>
-    </div>
-
-   <!-- New Players dropdown -->
-<div class="dropdown">
-  <a class="dropbtn" href="player-profiles.html">Player Profiles</a>
-  <div class="dropdown-content">
-    <button class="nav-btn player-btn" data-tab="ben">Ben</button>
-    <button class="nav-btn player-btn" data-tab="carter">Carter</button>
-    <button class="nav-btn player-btn" data-tab="jake">Jake</button>
-    <button class="nav-btn player-btn" data-tab="jimmy">Jimmy</button>
-    <button class="nav-btn player-btn" data-tab="gibby">Gibby</button>
-    <button class="nav-btn player-btn" data-tab="swift">Swift</button>
-    <button class="nav-btn player-btn" data-tab="kyle">Kyle</button>
-    <button class="nav-btn player-btn" data-tab="collin">Collin</button>
-  </div>
-</div>
-
+<nav class="tabnav" role="tablist" aria-label="Section">
+  <div class="wrap">
+    <button role="tab" data-panel="franchise" aria-selected="true">Franchise</button>
+    <button role="tab" data-panel="seasons" aria-selected="false">Seasons</button>
+    <button role="tab" data-panel="players" aria-selected="false">Players</button>
   </div>
 </nav>
 
+<main class="wrap">
 
-<main class="main">
+  <div class="error-banner" id="errorBanner"></div>
 
-<!-- ===== All-Time ===== -->
-<section id="alltime" class="tab-content">
-  <h2>All-Time Standings</h2>
-  <table class="standings-table">
-   <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th>
-<th>PF</th><th>PA</th><th>Win %</th><th>Rings</th></tr></thead>
+  <!-- FRANCHISE -->
+  <section id="panel-franchise" class="panel active">
 
-      <!-- ✏️ Replace placeholders -->
-      <tr><td>1</td><td>Jake</td><td>73</td><td>54</td><td>20349.2</td><td>19618.3</td><td>.575</td><td>3</td></tr>
-      <tr><td>2</td><td>Carter</td><td>72</td><td>55</td><td>21169.4</td><td>19880.9</td><td>.567</td><td>2</td></tr>
-       <tr><td>3</td><td>Swift</td><td>69</td><td>58</td><td>19554.35</td><td>19398.8</td><td>.543</td><td>0</td></tr>
-       <tr><td>4</td><td>Ben</td><td>64</td><td>63</td><td>19991.55</td><td>19857.4</td><td>.504</td><td>2</td></tr>
-       <tr><td>5</td><td>Jimmy</td><td>59</td><td>68</td><td>19131.8</td><td>19671.26</td><td>.465</td><td>1</td></tr>
-       <tr><td>6</td><td>Gibby</td><td>40</td><td>50</td><td>13736.4</td><td>13939.95</td><td>.444</td><td>1</td></tr>
-       <tr><td>7</td><td>Kyle</td><td>20</td><td>33</td><td>7851.81</td><td>8350.45</td><td>.377</td><td>0</td></tr>
-       <tr><td>8</td><td>Collin</td><td>20</td><td>33</td><td>7682.7</td><td>8378.05</td><td>.377</td><td>0</td></tr>
-       <tr><td>9</td><td>Leahy</td><td>17</td><td>20</td><td>5511.9</td><td>5884</td><td>.459</td><td>0</td></tr>
-  </table>
+    <section class="block">
+      <h2 class="h">All-time standings</h2>
+      <p class="sub">Every franchise, every season, added up automatically from each year's tab.</p>
+      <div class="table-scroll">
+        <table id="allTimeTable">
+          <thead>
+            <tr>
+              <th class="num">Rk</th>
+              <th class="sortable" data-key="team">Team<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="w">W<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="l">L<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pct">Win %<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pf">PF<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pa">PA<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="rings">Rings<span class="arrow">▾</span></th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="8" class="loading-note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
 
-  <h3>Overall Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th>
-        <th>Gibby</th><th>Swift</th><th>Kyle</th><th>Collin</th><th>Leahy</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- ✏️ Overall W-L records -->
-      <tr><td>Ben</td><td>X</td><td>13-12</td><td>8-13</td><td>9-12</td><td>9-6</td><td>10-12</td><td>7-1</td><td>5-3</td><td>3-4</td></tr>
-      <tr><td>Carter</td><td>12-13</td><td>X</td><td>10-12</td><td>14-8</td><td>8-4</td><td>15-8</td><td>4-4</td><td>5-3</td><td>4-3</td></tr>
-      <tr><td>Jake</td><td>13-8</td><td>12-10</td><td>X</td><td>14-8</td><td>6-10</td><td>13-9</td><td>4-4</td><td>5-3</td><td>5-3</td></tr>
-      <tr><td>Jimmy</td><td>12-9</td><td>8-14</td><td>8-14</td><td>X</td><td>8-8</td><td>8-14</td><td>3-5</td><td>7-1</td><td>5-3</td></tr>
-      <tr><td>Gibby</td><td>6-9</td><td>4-8</td><td>10-6</td><td>8-8</td><td>X</td><td>4-11</td><td>6-2</td><td>2-6</td><td>X</td></tr>
-      <tr><td>Swift</td><td>12-10</td><td>8-15</td><td>9-13</td><td>14-8</td><td>11-4</td><td>X</td><td>6-2</td><td>6-2</td><td>3-4</td></tr>
-      <tr><td>Kyle</td><td>1-7</td><td>4-4</td><td>3-5</td><td>5-3</td><td>2-6</td><td>2-6</td><td>X</td><td>3-2</td><td>X</td></tr>
-      <tr><td>Collin</td><td>3-5</td><td>3-5</td><td>3-5</td><td>1-7</td><td>6-2</td><td>2-6</td><td>2-3</td><td>X</td><td>X</td></tr>
-      <tr><td>Leahy</td><td>4-3</td><td>3-4</td><td>3-5</td><td>3-5</td><td>X</td><td>4-3</td><td>X</td><td>X</td><td>X</td></tr>
-    </tbody>
-  </table>
+    <section class="block">
+      <h2 class="h">Champions</h2>
+      <p class="sub">One ring per title — taken from each season's final standings.</p>
+      <div class="champs" id="champStrip"><span class="loading-note">Loading…</span></div>
+    </section>
 
-  <h3>All-Time Champions</h3>
-  <table class="standings-table">
-    <thead><tr><th>Year</th><th>Champion</th></tr></thead>
-    <tbody>
-      <tr><td>2016</td><td>Carter</td></tr>
-      <tr><td>2017</td><td>Jake</td></tr>
-      <tr><td>2018</td><td>Ben</td></tr>
-      <tr><td>2019</td><td>Jimmy</td></tr>
-      <tr><td>2020</td><td>Carter</td></tr>
-      <tr><td>2021</td><td>Jake</td></tr>
-      <tr><td>2022</td><td>Gibby</td></tr>
-      <tr><td>2023</td><td>Ben</td></tr>
-      <tr><td>2024</td><td>Jake</td></tr>
-      <tr><td>2025</td><td>Swift</td></tr>
-    </tbody>
-  </table>
-</section>
+    <section class="block">
+      <h2 class="h">Head-to-head, all time</h2>
+      <p class="sub">Row team's record against column team.</p>
+      <div class="table-scroll">
+        <table class="h2h" id="allTimeH2H"></table>
+      </div>
+    </section>
 
-<!-- ===== Example Year (duplicate for each season) ===== -->
-<section id="2016" class="tab-content hidden">
-  <h2>2016 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Carter</td><td>10</td><td>3</td><td>2020.1</td><td>1693</td><td>.769</td></tr>
-      <tr><td>2</td><td>Jake</td><td>8</td><td>5</td><td>1830</td><td>1851</td><td>.615</td></tr>
-       <tr><td>3</td><td>Leahy</td><td>7</td><td>6</td><td>1901</td><td>1921</td><td>.538</td></tr>
-       <tr><td>4</td><td>Jimmy</td><td>5</td><td>8</td><td>1555</td><td>1821</td><td>.385</td></tr>
-       <tr><td>5</td><td>Ben</td><td>5</td><td>8</td><td>1691</td><td>1680.1</td><td>.385</td></tr>
-       <tr><td>6</td><td>Swift</td><td>4</td><td>9</td><td>1698</td><td>1729</td><td>.308</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>0-2</td><td>2-1</td><td>0-3</td><td>1-2</td><td>2-0</td></tr>
-      <tr><td>Carter</td><td>2-0</td><td>X</td><td>1-2</td><td>2-0</td><td>2-1</td><td>3-0</td></tr>
-      <tr><td>Jake</td><td>1-2</td><td>2-1</td><td>X</td><td>2-0</td><td>1-1</td><td>2-1</td></tr>
-      <tr><td>Jimmy</td><td>3-0</td><td>0-2</td><td>0-2</td><td>X</td><td>1-2</td><td>1-2</td></tr>
-      <tr><td>Leahy</td><td>2-1</td><td>1-2</td><td>1-1</td><td>2-1</td><td>X</td><td>1-1</td></tr>
-      <tr><td>Swift</td><td>0-2</td><td>0-3</td><td>1-2</td><td>2-1</td><td>1-1</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Carter</td></tr>
-      <tr><td>2nd</td><td>Leahy</td></tr>
-      <tr><td>3rd</td><td>Jake</td></tr>
-      <tr><td>4th</td><td>Jimmy</td></tr>
-      <tr><td>5th</td><td>Swift</td></tr>
-      <tr><td>6th</td><td>Ben</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Playoff Bracket</h3>
-<img src="images/2016_bracket.png" alt="2016 Playoff Bracket" class="bracket-img">
-</section>  <!-- end of 2016 -->
-
-  <section id="2017" class="tab-content hidden">
-  <h2>2017 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Swift</td><td>9</td><td>3</td><td>1986.5</td><td>1683.05</td><td>.750</td></tr>
-      <tr><td>2</td><td>Jake</td><td>7</td><td>5</td><td>1880.85</td><td>1694.85</td><td>.583</td></tr>
-      <tr><td>3</td><td>Carter</td><td>5</td><td>7</td><td>2040.15</td><td>1933.6</td><td>.417</td></tr>
-      <tr><td>4</td><td>Ben</td><td>5</td><td>7</td><td>1807.45</td><td>2022.3</td><td>.417</td></tr>
-      <tr><td>5</td><td>Leahy</td><td>5</td><td>7</td><td>1653.15</td><td>1837.1</td><td>.417</td></tr>
-      <tr><td>6</td><td>Jimmy</td><td>5</td><td>7</td><td>1632.85</td><td>1830.05</td><td>.417</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>2-1</td><td>0-2</td><td>2-0</td><td>0-2</td><td>1-2</td></tr>
-      <tr><td>Carter</td><td>1-2</td><td>X</td><td>0-2</td><td>3-0</td><td>1-1</td><td>0-2</td></tr>
-      <tr><td>Jake</td><td>2-0</td><td>2-0</td><td>X</td><td>1-2</td><td>2-1</td><td>0-2</td></tr>
-      <tr><td>Jimmy</td><td>0-2</td><td>0-3</td><td>2-1</td><td>X</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Leahy</td><td>2-0</td><td>1-1</td><td>1-2</td><td>0-2</td><td>X</td><td>1-2</td></tr>
-      <tr><td>Swift</td><td>2-1</td><td>2-0</td><td>2-0</td><td>1-1</td><td>2-1</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Jake</td></tr>
-      <tr><td>2nd</td><td>Swift</td></tr>
-      <tr><td>3rd</td><td>Ben</td></tr>
-      <tr><td>4th</td><td>Carter</td></tr>
-      <tr><td>5th</td><td>Leahy</td></tr>
-      <tr><td>6th</td><td>Jimmy</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2017_bracket.png" alt="2017 Playoff Bracket">
-</div>
-</section>  <!-- end of 2017 -->
-  
-  <section id="2018" class="tab-content hidden"> 
-  <h2>2018 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Ben</td><td>7</td><td>6</td><td>2278.45</td><td>2206.95</td><td>.583</td></tr>
-      <tr><td>2</td><td>Carter</td><td>6</td><td>6</td><td>2301.9</td><td>2232.6</td><td>.500</td></tr>
-       <tr><td>3</td><td>Jimmy</td><td>6</td><td>6</td><td>2163.45</td><td>2031.2</td><td>.500</td></tr>
-       <tr><td>4</td><td>Swift</td><td>6</td><td>6</td><td>2129.9</td><td>2130.35</td><td>.500</td></tr>
-       <tr><td>5</td><td>Jake</td><td>6</td><td>6</td><td>2083.3</td><td>2187.75</td><td>.500</td></tr>
-       <tr><td>6</td><td>Leahy</td><td>5</td><td>7</td><td>1957.75</td><td>2125.9</td><td>.500</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Leahy</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>2-1</td><td>0-2</td><td>1-2</td><td>2-0</td><td>2-0</td></tr>
-      <tr><td>Carter</td><td>1-2</td><td>X</td><td>2-0</td><td>1-1</td><td>1-1</td><td>1-2</td></tr>
-      <tr><td>Jake</td><td>2-0</td><td>0-2</td><td>X</td><td>1-1</td><td>2-1</td><td>1-2</td></tr>
-      <tr><td>Jimmy</td><td>2-1</td><td>1-1</td><td>1-1</td><td>X</td><td>2-1</td><td>0-2</td></tr>
-      <tr><td>Leahy</td><td>0-2</td><td>1-1</td><td>1-2</td><td>1-2</td><td>X</td><td>2-0</td></tr>
-      <tr><td>Swift</td><td>0-2</td><td>2-1</td><td>2-1</td><td>2-0</td><td>0-2</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Ben</td></tr>
-      <tr><td>2nd</td><td>Carter</td></tr>
-      <tr><td>3rd</td><td>Swift</td></tr>
-      <tr><td>4th</td><td>Jimmy</td></tr>
-      <tr><td>5th</td><td>Jake</td></tr>
-      <tr><td>6th</td><td>Leahy</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2018_bracket.png" alt="2018 Playoff Bracket">
-</div>
-</section>  <!-- end of 2018 -->
-    
-  <section id="2019" class="tab-content hidden">
-  <h2>2019 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Carter</td><td>8</td><td>4</td><td>2306.3</td><td>2046</td><td>..667</td></tr>
-      <tr><td>2</td><td>Swift</td><td>7</td><td>5</td><td>1872.8</td><td>1938.4</td><td>.583</td></tr>
-      <tr><td>3</td><td>Jake</td><td>8</td><td>4</td><td>1980.7</td><td>1921.55</td><td>.667</td></tr>
-      <tr><td>4</td><td>Jimmy</td><td>5</td><td>7</td><td>1874.85</td><td>1968.7</td><td>.417</td></tr>
-      <tr><td>5</td><td>Ben</td><td>4</td><td>8</td><td>1956.45</td><td>2025.05</td><td>.333</td></tr>
-      <tr><td>6</td><td>Gibby</td><td>4</td><td>8</td><td>1890.35</td><td>1981.75</td><td>.333</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>1-2</td><td>0-3</td><td>0-2</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Carter</td><td>2-1</td><td>X</td><td>1-1</td><td>2-0</td><td>1-1</td><td>2-1</td></tr>
-      <tr><td>Jake</td><td>3-0</td><td>1-1</td><td>X</td><td>1-1</td><td>1-2</td><td>2-0</td></tr>
-      <tr><td>Jimmy</td><td>2-0</td><td>0-2</td><td>1-1</td><td>X</td><td>2-1</td><td>0-3</td></tr>
-      <tr><td>Gibby</td><td>0-2</td><td>1-1</td><td>2-1</td><td>1-2</td><td>X</td><td>0-2</td></tr>
-      <tr><td>Swift</td><td>1-1</td><td>1-2</td><td>0-2</td><td>3-0</td><td>2-0</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Jimmy</td></tr>
-      <tr><td>2nd</td><td>Jake</td></tr>
-      <tr><td>3rd</td><td>Carter</td></tr>
-      <tr><td>4th</td><td>Swift</td></tr>
-      <tr><td>5th</td><td>Ben</td></tr>
-      <tr><td>6th</td><td>Gibby</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2019_bracket.png" alt="2019 Playoff Bracket">
-</div>
-</section>  <!-- end of 2019 -->
-    
-  <section id="2020" class="tab-content hidden">
-  <h2>2020 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Jake</td><td>8</td><td>4</td><td>2151.75</td><td>1994.05</td><td>..667</td></tr>
-      <tr><td>2</td><td>Gibby</td><td>7</td><td>5</td><td>2032.4</td><td>1950.1</td><td>.583</td></tr>
-       <tr><td>3</td><td>Carter</td><td>8</td><td>4</td><td>1992.05</td><td>1906.95</td><td>.667</td></tr>
-      <tr><td>4</td><td>Swift</td><td>6</td><td>6</td><td>1896.95</td><td>1903.75</td><td>.500</td></tr>
-      <tr><td>5</td><td>Jimmy</td><td>5</td><td>7</td><td>2039</td><td>2028.45</td><td>.417</td></tr>
-      <tr><td>6</td><td>Ben</td><td>2</td><td>10</td><td>1837.85</td><td>2166.7</td><td>.167</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>1-2</td><td>0-3</td><td>1-1</td><td>0-2</td><td>0-2</td></tr>
-      <tr><td>Carter</td><td>2-1</td><td>X</td><td>1-1</td><td>1-1</td><td>1-1</td><td>3-0</td></tr>
-      <tr><td>Jake</td><td>3-0</td><td>1-1</td><td>X</td><td>2-0</td><td>1-2</td><td>1-1</td></tr>
-      <tr><td>Jimmy</td><td>1-1</td><td>1-1</td><td>0-2</td><td>X</td><td>1-2</td><td>2-1</td></tr>
-      <tr><td>Gibby</td><td>2-0</td><td>1-1</td><td>2-1</td><td>2-1</td><td>X</td><td>0-2</td></tr>
-      <tr><td>Swift</td><td>2-0</td><td>0-3</td><td>1-1</td><td>1-2</td><td>2-0</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Carter</td></tr>
-      <tr><td>2nd</td><td>Jake</td></tr>
-      <tr><td>3rd</td><td>Gibby</td></tr>
-      <tr><td>4th</td><td>Swift</td></tr>
-      <tr><td>5th</td><td>Jimmy</td></tr>
-      <tr><td>6th</td><td>Ben</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2020_bracket.png" alt="2020 Playoff Bracket">
-</div>
-</section>  <!-- end of 2020 -->
-    
-   <section id="2021" class="tab-content hidden">
-  <h2>2021 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Ben</td><td>9</td><td>4</td><td>2143.9</td><td>2004.45</td><td>.692</td></tr>
-      <tr><td>2</td><td>Jimmy</td><td>7</td><td>6</td><td>2076.6</td><td>2060.95</td><td>.538</td></tr>
-      <tr><td>3</td><td>Jake</td><td>7</td><td>6</td><td>2064.9</td><td>2206.85</td><td>.538</td></tr>
-      <tr><td>4</td><td>Swift</td><td>7</td><td>6</td><td>2059.1</td><td>1982.6</td><td>.538</td></tr>
-      <tr><td>5</td><td>Carter</td><td>6</td><td>7</td><td>2152.4</td><td>2140.2</td><td>.462</td></tr>
-      <tr><td>6</td><td>Gibby</td><td>3</td><td>10</td><td>1944.85</td><td>2046.7</td><td>.231</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>2-1</td><td>1-1</td><td>1-1</td><td>3-0</td><td>2-1</td></tr>
-      <tr><td>Carter</td><td>1-2</td><td>X</td><td>2-1</td><td>1-2</td><td>1-1</td><td>1-1</td></tr>
-      <tr><td>Jake</td><td>1-1</td><td>1-2</td><td>X</td><td>2-1</td><td>2-1</td><td>1-1</td></tr>
-      <tr><td>Jimmy</td><td>1-1</td><td>2-1</td><td>1-2</td><td>X</td><td>1-1</td><td>2-1</td></tr>
-      <tr><td>Gibby</td><td>0-3</td><td>1-1</td><td>1-2</td><td>1-1</td><td>X</td><td>0-3</td></tr>
-      <tr><td>Swift</td><td>1-2</td><td>1-1</td><td>1-1</td><td>1-2</td><td>3-0</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Jake</td></tr>
-      <tr><td>2nd</td><td>Ben</td></tr>
-      <tr><td>3rd</td><td>Swift</td></tr>
-      <tr><td>4th</td><td>Jimmy</td></tr>
-      <tr><td>5th</td><td>Carter</td></tr>
-      <tr><td>6th</td><td>Gibby</td></tr>
-    </tbody>
-  </table>
-  
- <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2021_bracket.png" alt="2021 Playoff Bracket">
-</div>
-</section>  <!-- end of 2021 -->
-     
-<section id="2022" class="tab-content hidden">
-  <h2>2022 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Jimmy</td><td>9</td><td>4</td><td>2069.7</td><td>1895.56</td><td>.692</td></tr>
-      <tr><td>2</td><td>Gibby</td><td>7</td><td>6</td><td>1994.35</td><td>1976.3</td><td>.538</td></tr>
-      <tr><td>3</td><td>Jake</td><td>7</td><td>6</td><td>2144.05</td><td>1960.35</td><td>.538</td></tr>
-      <tr><td>4</td><td>Carter</td><td>7</td><td>6</td><td>1958.9</td><td>1879.1</td><td>.538</td></tr>
-      <tr><td>5</td><td>Ben</td><td>7</td><td>6</td><td>1893.7</td><td>1867.3</td><td>.538</td></tr>
-      <tr><td>6</td><td>Kyle</td><td>6</td><td>7</td><td>2029.21</td><td>2094.3</td><td>.462</td></tr>
-      <tr><td>7</td><td>Swift</td><td>6</td><td>7</td><td>1888.55</td><td>1984</td><td>.462</td></tr>
-      <tr><td>6</td><td>Collin</td><td>3</td><td>10</td><td>1740.75</td><td>2062.3</td><td>.231</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th><th>Kyle</th><th>Collin</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>1-1</td><td>1-1</td><td>0-1</td><td>1-1</td><td>1-1</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Carter</td><td>1-1</td><td>X</td><td>1-1</td><td>0-2</td><td>1-1</td><td>1-0</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Jake</td><td>1-1</td><td>1-1</td><td>X</td><td>0-2</td><td>1-0</td><td>2-0</td><td>1-1</td><td>1-1</td></tr>
-      <tr><td>Jimmy</td><td>1-0</td><td>2-0</td><td>2-0</td><td>X</td><td>1-1</td><td>1-1</td><td>0-2</td><td>2-0</td></tr>
-      <tr><td>Gibby</td><td>1-1</td><td>1-1</td><td>0-1</td><td>1-1</td><td>X</td><td>1-1</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Swift</td><td>1-1</td><td>0-1</td><td>0-2</td><td>1-1</td><td>1-1</td><td>X</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Kyle</td><td>1-1</td><td>0-2</td><td>1-1</td><td>2-0</td><td>0-2</td><td>1-1</td><td>X</td><td>1-0</td></tr>
-      <tr><td>Collin</td><td>0-2</td><td>1-1</td><td>1-1</td><td>0-2</td><td>1-1</td><td>0-2</td><td>0-1</td><td>X</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Gibby</td></tr>
-      <tr><td>2nd</td><td>Jimmy</td></tr>
-      <tr><td>3rd</td><td>Carter</td></tr>
-      <tr><td>4th</td><td>Jake</td></tr>
-      <tr><td>5th</td><td>Ben</td></tr>
-      <tr><td>6th</td><td>Kyle</td></tr>
-      <tr><td>7th</td><td>Collin</td></tr>
-      <tr><td>8th</td><td>Swift</td></tr>
-    </tbody>
-  </table>
-
- <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2022_bracket.png" alt="2022 Playoff Bracket">
-</div>
-</section>  <!-- end of 2022 -->
-
-  <section id="2023" class="tab-content hidden">
-  <h2>2023 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Swift</td><td>9</td><td>4</td><td>1993.2</td><td>1884.5</td><td>.692</td></tr>
-      <tr><td>2</td><td>Carter</td><td>8</td><td>5</td><td>2064.95</td><td>1879.85</td><td>..615</td></tr>
-      <tr><td>3</td><td>Ben</td><td>9</td><td>4</td><td>2171.95</td><td>1901.75</td><td>.692</td></tr>
-      <tr><td>4</td><td>Gibby</td><td>8</td><td>5</td><td>2113.55</td><td>2043.8</td><td>.615</td></tr>
-      <tr><td>5</td><td>Jake</td><td>6</td><td>7</td><td>1923.6</td><td>1884.35</td><td>.462</td></tr>
-      <tr><td>6</td><td>Collin</td><td>5</td><td>8</td><td>1896.65</td><td>2071.1</td><td>.385</td></tr>
-      <tr><td>7</td><td>Kyle</td><td>5</td><td>8</td><td>1910.4</td><td>1985.35</td><td>.385</td></tr>
-      <tr><td>8</td><td>Jimmy</td><td>2</td><td>11</td><td>1803.5</td><td>2227.1</td><td>.154</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th><th>Kyle</th><th>Collin</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>2-0</td><td>1-0</td><td>2-0</td><td>1-1</td><td>0-2</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Carter</td><td>0-2</td><td>X</td><td>0-2</td><td>2-0</td><td>1-0</td><td>2-0</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Jake</td><td>0-1</td><td>2-0</td><td>X</td><td>2-0</td><td>0-2</td><td>0-2</td><td>1-1</td><td>1-1</td></tr>
-      <tr><td>Jimmy</td><td>0-2</td><td>0-2</td><td>0-2</td><td>X</td><td>1-1</td><td>0-1</td><td>0-2</td><td>1-1</td></tr>
-      <tr><td>Gibby</td><td>1-1</td><td>0-1</td><td>2-0</td><td>1-1</td><td>X</td><td>1-1</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Swift</td><td>2-0</td><td>0-2</td><td>2-0</td><td>1-0</td><td>1-1</td><td>X</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Kyle</td><td>0-2</td><td>1-1</td><td>1-1</td><td>2-0</td><td>0-2</td><td>1-1</td><td>X</td><td>0-1</td></tr>
-      <tr><td>Collin</td><td>1-1</td><td>0-2</td><td>1-1</td><td>1-1</td><td>1-1</td><td>0-2</td><td>1-0</td><td>X</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Ben</td></tr>
-      <tr><td>2nd</td><td>Gibby</td></tr>
-      <tr><td>3rd</td><td>Carter</td></tr>
-      <tr><td>4th</td><td>Swift</td></tr>
-      <tr><td>5th</td><td>Jake</td></tr>
-      <tr><td>6th</td><td>Collin</td></tr>
-      <tr><td>7th</td><td>Kyle</td></tr>
-      <tr><td>8th</td><td>Jimmy</td></tr>
-    </tbody>
-  </table>
-
- <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2023_bracket.png" alt="2023 Playoff Bracket">
-</div>
-</section>  <!-- end of 2023 -->
-
- <section id="2024" class="tab-content hidden">
-  <h2>2024 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Ben</td><td>10</td><td>3</td><td>2196.45</td><td>1921.45</td><td>.769</td></tr>
-      <tr><td>2</td><td>Jake</td><td>8</td><td>5</td><td>2176.35</td><td>1904.5</td><td>.615</td></tr>
-      <tr><td>3</td><td>Gibby</td><td>7</td><td>6</td><td>1951.2</td><td>1895.9</td><td>.538</td></tr>
-      <tr><td>4</td><td>Swift</td><td>7</td><td>6</td><td>1922.9</td><td>2013.6</td><td>.538</td></tr>
-      <tr><td>5</td><td>Carter</td><td>6</td><td>7</td><td>2037.55</td><td>2095.45</td><td>.462</td></tr>
-      <tr><td>6</td><td>Jimmy</td><td>6</td><td>7</td><td>1885.6</td><td>1993.9</td><td>.462</td></tr>
-      <tr><td>7</td><td>Kyle</td><td>4</td><td>9</td><td>1857.1</td><td>1945.35</td><td>.308</td></tr>
-      <tr><td>8</td><td>Collin</td><td>4</td><td>9</td><td>1956.85</td><td>2213.85</td><td>.308</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th><th>Kyle</th><th>Collin</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>2-0</td><td>1-0</td><td>2-0</td><td>1-1</td><td>0-2</td><td>2-0</td><td>2-0</td></tr>
-      <tr><td>Carter</td><td>0-2</td><td>X</td><td>1-1</td><td>1-1</td><td>1-0</td><td>1-1</td><td>1-1</td><td>1-1</td></tr>
-      <tr><td>Jake</td><td>0-1</td><td>1-1</td><td>X</td><td>1-1</td><td>1-1</td><td>2-0</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Jimmy</td><td>0-2</td><td>1-1</td><td>1-1</td><td>X</td><td>0-2</td><td>0-1</td><td>2-0</td><td>2-0</td></tr>
-      <tr><td>Gibby</td><td>1-1</td><td>0-1</td><td>1-1</td><td>2-0</td><td>X</td><td>2-0</td><td>1-1</td><td>0-2</td></tr>
-      <tr><td>Swift</td><td>2-0</td><td>1-1</td><td>0-2</td><td>1-0</td><td>0-2</td><td>X</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Kyle</td><td>0-2</td><td>1-1</td><td>1-1</td><td>0-2</td><td>1-1</td><td>0-2</td><td>X</td><td>1-0</td></tr>
-      <tr><td>Collin</td><td>0-2</td><td>1-1</td><td>0-2</td><td>0-2</td><td>2-0</td><td>1-1</td><td>0-1</td><td>X</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Jake</td></tr>
-      <tr><td>2nd</td><td>Swift</td></tr>
-      <tr><td>3rd</td><td>Jimmy</td></tr>
-      <tr><td>4th</td><td>Ben</td></tr>
-      <tr><td>5th</td><td>Carter</td></tr>
-      <tr><td>6th</td><td>Gibby</td></tr>
-      <tr><td>7th</td><td>Collin</td></tr>
-      <tr><td>8th</td><td>Kyle</td></tr>
-    </tbody>
-  </table>
-
- <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2024_bracket.png" alt="2024 Playoff Bracket">
-</div>
-</section>  <!-- end of 2024 -->
-
- <section id="2025" class="tab-content hidden">
-  <h2>2025 Season</h2>
-
-  <h3>Regular Season Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Rank</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Win %</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Jimmy</td><td>9</td><td>5</td><td>2031.25</td><td>1814.35</td><td>.643</td></tr>
-      <tr><td>2</td><td>Swift</td><td>8</td><td>6</td><td>2106.45</td><td>2149.55</td><td>.571</td></tr>
-      <tr><td>3</td><td>Carter</td><td>8</td><td>6</td><td>2295.1</td><td>2074.15</td><td>.571</td></tr>
-      <tr><td>4</td><td>Jake</td><td>8</td><td>6</td><td>2113.7</td><td>2013.05</td><td>.571</td></tr>
-      <tr><td>5</td><td>Collin</td><td>8</td><td>6</td><td>2088.45</td><td>2030.8</td><td>.571</td></tr>
-      <tr><td>6</td><td>Ben</td><td>6</td><td>8</td><td>2014.35</td><td>2061.35</td><td>.429</td></tr>
-      <tr><td>7</td><td>Kyle</td><td>5</td><td>9</td><td>2055.1</td><td>2325.45</td><td>.357</td></tr>
-      <tr><td>8</td><td>Gibby</td><td>4</td><td>10</td><td>1809.7</td><td>2045.4</td><td>.286</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Head-to-Head</h3>
-  <table class="h2h-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ben</th><th>Carter</th><th>Jake</th><th>Jimmy</th><th>Gibby</th><th>Swift</th><th>Kyle</th><th>Collin</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ben</td><td>X</td><td>0-2</td><td>2-0</td><td>0-2</td><td>1-1</td><td>1-1</td><td>2-0</td><td>0-2</td></tr>
-      <tr><td>Carter</td><td>2-0</td><td>X</td><td>1-1</td><td>1-1</td><td>2-0</td><td>1-1</td><td>0-2</td><td>1-1</td></tr>
-      <tr><td>Jake</td><td>0-2</td><td>1-1</td><td>X</td><td>2-0</td><td>0-2</td><td>2-0</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Jimmy</td><td>2-0</td><td>1-1</td><td>0-2</td><td>X</td><td>2-0</td><td>1-1</td><td>1-1</td><td>2-0</td></tr>
-      <tr><td>Gibby</td><td>1-1</td><td>0-2</td><td>2-0</td><td>0-2</td><td>X</td><td>0-2</td><td>1-1</td><td>0-2</td></tr>
-      <tr><td>Swift</td><td>1-1</td><td>1-1</td><td>0-2</td><td>1-1</td><td>2-0</td><td>X</td><td>2-0</td><td>1-1</td></tr>
-      <tr><td>Kyle</td><td>0-2</td><td>2-0</td><td>0-2</td><td>1-1</td><td>1-1</td><td>0-2</td><td>X</td><td>1-1</td></tr>
-      <tr><td>Collin</td><td>2-0</td><td>1-1</td><td>1-1</td><td>0-2</td><td>2-0</td><td>1-1</td><td>1-1</td><td>X</td></tr>
-      
-    </tbody>
-  </table>
-
-  <h3>Final Standings</h3>
-  <table class="standings-table">
-    <thead><tr><th>Place</th><th>Team</th></tr></thead>
-    <tbody>
-      <tr><td>1st</td><td>Swift</td></tr>
-      <tr><td>2nd</td><td>Jimmy</td></tr>
-      <tr><td>3rd</td><td>Collin</td></tr>
-      <tr><td>4th</td><td>Carter</td></tr>
-      <tr><td>5th</td><td>Ben</td></tr>
-      <tr><td>6th</td><td>Jake</td></tr>
-      <tr><td>7th</td><td>Kyle</td></tr>
-      <tr><td>8th</td><td>Gibby</td></tr>
-    </tbody>
-  </table>
-
- <h3>Playoff Bracket</h3>
-<div class="bracket-wide">
-  <img src="images/2025_bracket.png" alt="2025 Playoff Bracket">
-</div>
-</section>  <!-- end of 2025 -->
-
-<!-- ✏️ Duplicate this entire section for 2017–2025 and update data -->
-<!-- Player Profiles container -->
-<section id="player-profiles">
-  <!-- Ben -->
-  <section id="ben" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Ben.png" alt="Ben profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Ben_Expansion.png" alt="Ben since expansion" loading="lazy" decoding="async" />
-    </div>
   </section>
 
-  <!-- Carter -->
-  <section id="carter" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Carter.png" alt="Carter profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Carter_Expansion.png" alt="Carter since expansion" loading="lazy" decoding="async" />
-    </div>
+  <!-- SEASONS -->
+  <section id="panel-seasons" class="panel">
+    <div class="year-rail" id="yearRail"><span class="loading-note">Loading seasons…</span></div>
+    <div id="seasonContent"></div>
   </section>
 
-  <!-- Jake -->
-  <section id="jake" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Jake.png" alt="Jake profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Jake_Expansion.png" alt="Jake since expansion" loading="lazy" decoding="async" />
-    </div>
+  <!-- PLAYERS -->
+  <section id="panel-players" class="panel">
+    <section class="block">
+      <h2 class="h">Player profiles</h2>
+      <p class="sub">Full write-ups live on the <a href="player-profiles.html">player profiles page</a>.</p>
+      <div class="player-grid" id="playerGrid"></div>
+    </section>
   </section>
 
-  <!-- Jimmy -->
-  <section id="jimmy" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Jimmy.png" alt="Jimmy profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Jimmy_Expansion.png" alt="Jimmy since expansion" loading="lazy" decoding="async" />
-    </div>
-  </section>
-
-  <!-- Gibby -->
-  <section id="gibby" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Gibby.png" alt="Gibby profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Gibby_Expansion.png" alt="Gibby since expansion" loading="lazy" decoding="async" />
-    </div>
-  </section>
-
-  <!-- Swift -->
-  <section id="swift" class="tab-content">
-    <div class="sheet-grid">
-      <img class="sheet" src="./Player_Profiles/Swift.png" alt="Swift profile" loading="lazy" decoding="async" />
-      <img class="sheet" src="./Player_Profiles/Swift_Expansion.png" alt="Swift since expansion" loading="lazy" decoding="async" />
-    </div>
-  </section>
-
-  <!-- Kyle (1 image) -->
-  <section id="kyle" class="tab-content">
-    <img class="sheet" src="./Player_Profiles/Kyle.png" alt="Kyle profile" loading="lazy" decoding="async" />
-  </section>
-
-  <!-- Collin (1 image) -->
-  <section id="collin" class="tab-content">
-    <img class="sheet" src="./Player_Profiles/Collin.png" alt="Collin profile" loading="lazy" decoding="async" />
-  </section>
-</section>
 </main>
 
-<footer class="footer">
-  Edit this file to update standings, H2H, final standings, and playoff results. Push to GitHub Pages to publish.
+<footer>
+  <div class="wrap">
+    Between the Lines Fantasy Football — commissioner's record book. Standings, head-to-head, and champions are
+    pulled live from the <a href="https://docs.google.com/spreadsheets/d/1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI/edit" target="_blank" rel="noopener">league spreadsheet</a>
+    every time this page loads — edit a season's tab there and reload this page to see it here. Bracket images and
+    player photos still come from this repo's <code>images/</code> and <code>Player_Profiles/</code> folders.
+  </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-function activateTab(tabName){
-  document.querySelectorAll('.tab-content').forEach(sec=>sec.classList.add('hidden'));
-  document.getElementById(tabName).classList.remove('hidden');
+/* =====================================================================
+   HOW THIS SITE GETS ITS DATA
+   ---------------------------------------------------------------------
+   Standings, head-to-head, and final standings are read live from the
+   Google Sheet each time someone loads this page — there is nothing to
+   edit in this file for a normal weekly update. Just edit the sheet.
+
+   WHAT THIS SCRIPT EXPECTS ON EACH YEAR'S TAB (matches the existing
+   sheet layout):
+     - A "Week / Team A / Score A / Team B / Score B" table starting
+       wherever the header row "Week" appears.
+     - A standings table with a "Team" header cell immediately followed
+       by "Wins" in the next column (then Losses, Points For,
+       Points Against). Rows are read until the first blank team cell,
+       so a 6-team or 8-team season both work with no changes here.
+     - A "Season H2H" label cell, with team names filling the columns
+       to its right and rows below it — however many teams there are.
+     - A "Final Standings" label cell, with rows below it of
+       place / team pairs ("1st" / "Carter", etc).
+   Because everything is found by label rather than a fixed cell
+   address, adding teams, adding weeks, or a season running long
+   doesn't require touching this file — only years that don't have a
+   filled-in standings table yet are skipped automatically.
+
+   TO ADD A NEW SEASON TAB: just create it in the sheet, named for the
+   year (e.g. "2026"), following the same layout. It will appear on
+   the site the first time it has at least two standings rows filled
+   in. If you ever add a tab named something other than a plain year
+   number beyond CANDIDATE_YEAR_RANGE below, extend that range.
+
+   BRACKET IMAGES / PLAYER PHOTOS: still static files in this repo
+   (images/<year>_bracket.png, Player_Profiles/<Team>.png) — the sheet
+   doesn't drive those, so upload/replace those files directly.
+   ===================================================================== */
+
+const SHEET_ID = "1AHleVFSpMRauxQqvEb5UVZdgMcNIwTcADfjsqV7cVrI";
+const CANDIDATE_YEAR_RANGE = [2016, 2035]; // extend the upper bound if you add tabs past this
+
+const PLAYERS = [
+  {team:"Ben",    photo:"Player_Profiles/Ben.png",    expansion:"Player_Profiles/Ben_Expansion.png"},
+  {team:"Carter", photo:"Player_Profiles/Carter.png", expansion:"Player_Profiles/Carter_Expansion.png"},
+  {team:"Jake",   photo:"Player_Profiles/Jake.png",   expansion:"Player_Profiles/Jake_Expansion.png"},
+  {team:"Jimmy",  photo:"Player_Profiles/Jimmy.png",  expansion:"Player_Profiles/Jimmy_Expansion.png"},
+  {team:"Gibby",  photo:"Player_Profiles/Gibby.png",  expansion:"Player_Profiles/Gibby_Expansion.png"},
+  {team:"Swift",  photo:"Player_Profiles/Swift.png",  expansion:"Player_Profiles/Swift_Expansion.png"},
+  {team:"Kyle",   photo:"Player_Profiles/Kyle.png"},
+  {team:"Collin", photo:"Player_Profiles/Collin.png"},
+];
+
+/* ===================================================================== */
+/* Sheet fetching + generic block parsing                                */
+/* ===================================================================== */
+
+function sheetCsvUrl(sheetName){
+  const cacheBust = Date.now();
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_=${cacheBust}`;
 }
 
-document.querySelectorAll('[data-tab]').forEach(btn=>{
-  btn.addEventListener('click', e=>{
-    e.preventDefault();
-    activateTab(btn.dataset.tab);
+async function fetchYearGrid(year){
+  const res = await fetch(sheetCsvUrl(String(year)));
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  // A tab that doesn't exist comes back as an HTML error page, not CSV.
+  if(/^\s*</.test(text)) throw new Error("tab not found");
+  const parsed = Papa.parse(text, {skipEmptyLines:false});
+  return parsed.data;
+}
+
+function cell(grid, r, c){
+  if(!grid[r]) return "";
+  const v = grid[r][c];
+  return (v === undefined || v === null) ? "" : String(v).trim();
+}
+
+function findCell(grid, matchFn){
+  for(let r=0; r<grid.length; r++){
+    const row = grid[r] || [];
+    for(let c=0; c<row.length; c++){
+      if(matchFn(cell(grid,r,c), r, c)) return {r,c};
+    }
+  }
+  return null;
+}
+
+function parseWeeklyGames(grid){
+  const head = findCell(grid, v => v.toLowerCase() === "week");
+  if(!head) return [];
+  const games = [];
+  for(let r=head.r+1; r<grid.length; r++){
+    const week = cell(grid, r, head.c);
+    if(!week) break;
+    games.push({
+      week: Number(week),
+      teamA: cell(grid, r, head.c+1),
+      scoreA: parseFloat(cell(grid, r, head.c+2)),
+      teamB: cell(grid, r, head.c+3),
+      scoreB: parseFloat(cell(grid, r, head.c+4)),
+    });
+  }
+  return games;
+}
+
+function parseStandings(grid){
+  const head = findCell(grid, (v,r,c) => v === "Team" && cell(grid,r,c+1).toLowerCase().startsWith("win"));
+  if(!head) return [];
+  const rows = [];
+  for(let r=head.r+1; r<grid.length; r++){
+    const team = cell(grid, r, head.c);
+    if(!team) break;
+    rows.push({
+      team,
+      w: Number(cell(grid, r, head.c+1)) || 0,
+      l: Number(cell(grid, r, head.c+2)) || 0,
+      pf: parseFloat(cell(grid, r, head.c+3)) || 0,
+      pa: parseFloat(cell(grid, r, head.c+4)) || 0,
+    });
+  }
+  return rows;
+}
+
+function parseH2H(grid){
+  const head = findCell(grid, v => v.toLowerCase() === "season h2h");
+  if(!head) return {teams:[], matrix:{}};
+  const teams = [];
+  const cols = [];
+  for(let c=head.c+1; ; c++){
+    const v = cell(grid, head.r, c);
+    if(!v) break;
+    teams.push(v);
+    cols.push(c);
+  }
+  const matrix = {};
+  for(let r=head.r+1; r<grid.length; r++){
+    const rowTeam = cell(grid, r, head.c);
+    if(!rowTeam) break;
+    matrix[rowTeam] = {};
+    cols.forEach((c, i) => {
+      const v = cell(grid, r, c);
+      if(v && v !== "-") matrix[rowTeam][teams[i]] = v;
+    });
+  }
+  return {teams, matrix};
+}
+
+function parseFinalStandings(grid){
+  const head = findCell(grid, v => v === "Final Standings");
+  if(!head) return [];
+  const list = [];
+  for(let r=head.r+1; r<grid.length; r++){
+    const place = cell(grid, r, head.c);
+    const team = cell(grid, r, head.c+1);
+    if(!place || !team) break;
+    list.push(team);
+  }
+  return list;
+}
+
+/* ===================================================================== */
+/* Load every season, then aggregate franchise-wide totals               */
+/* ===================================================================== */
+
+async function loadSeasons(){
+  const years = [];
+  for(let y=CANDIDATE_YEAR_RANGE[0]; y<=CANDIDATE_YEAR_RANGE[1]; y++) years.push(y);
+
+  const settled = await Promise.allSettled(years.map(async y => ({y, grid: await fetchYearGrid(y)})));
+
+  const seasons = {};
+  let anyFetchAttempted = false;
+  let allFailed = true;
+
+  settled.forEach(res => {
+    if(res.status !== "fulfilled") return;
+    anyFetchAttempted = true;
+    const {y, grid} = res.value;
+    const standings = parseStandings(grid);
+    if(standings.length < 2) return; // tab exists but season hasn't started / isn't filled in yet
+    allFailed = false;
+    const h2h = parseH2H(grid);
+    const finalStandings = parseFinalStandings(grid);
+    seasons[y] = {
+      teams: h2h.teams.length ? h2h.teams : standings.map(s => s.team),
+      standings,
+      h2h: h2h.matrix,
+      finalStandings: finalStandings.length ? finalStandings : standings.map(s => s.team),
+      games: parseWeeklyGames(grid),
+      bracket: `images/${y}_bracket.png`,
+    };
+  });
+
+  return {seasons, anyFetchAttempted, allFailed};
+}
+
+function aggregateAllTime(seasons){
+  const totals = {};   // team -> {w,l,pf,pa}
+  const h2hTotals = {}; // rowTeam -> colTeam -> {w,l}
+  const teamOrder = [];
+  const champions = [];
+
+  Object.keys(seasons).map(Number).sort((a,b)=>a-b).forEach(year => {
+    const s = seasons[year];
+
+    s.standings.forEach(row => {
+      if(!totals[row.team]){ totals[row.team] = {w:0,l:0,pf:0,pa:0}; teamOrder.push(row.team); }
+      totals[row.team].w += row.w;
+      totals[row.team].l += row.l;
+      totals[row.team].pf += row.pf;
+      totals[row.team].pa += row.pa;
+    });
+
+    Object.entries(s.h2h).forEach(([rowTeam, opponents]) => {
+      Object.entries(opponents).forEach(([colTeam, rec]) => {
+        const [w,l] = rec.split("-").map(Number);
+        if(Number.isNaN(w) || Number.isNaN(l)) return;
+        h2hTotals[rowTeam] = h2hTotals[rowTeam] || {};
+        h2hTotals[rowTeam][colTeam] = h2hTotals[rowTeam][colTeam] || {w:0,l:0};
+        h2hTotals[rowTeam][colTeam].w += w;
+        h2hTotals[rowTeam][colTeam].l += l;
+      });
+    });
+
+    if(s.finalStandings[0]) champions.push({year, team: s.finalStandings[0]});
+  });
+
+  const allTimeStandings = teamOrder
+    .map(team => ({team, ...totals[team]}))
+    .sort((a,b) => {
+      const pa_ = (a.w+a.l) ? a.w/(a.w+a.l) : 0;
+      const pb_ = (b.w+b.l) ? b.w/(b.w+b.l) : 0;
+      return pb_ - pa_ || b.w - a.w;
+    });
+
+  const allTimeH2H = {};
+  Object.entries(h2hTotals).forEach(([rowTeam, opponents]) => {
+    allTimeH2H[rowTeam] = {};
+    Object.entries(opponents).forEach(([colTeam, rec]) => {
+      allTimeH2H[rowTeam][colTeam] = `${rec.w}-${rec.l}`;
+    });
+  });
+
+  return {allTimeStandings, allTimeH2H, champions, teamOrder};
+}
+
+/* ===================================================================== */
+/* Rendering (unchanged in spirit from the static version)               */
+/* ===================================================================== */
+
+let LIVE = null; // {seasons, allTimeStandings, allTimeH2H, champions, teamOrder}
+
+function ringCount(team){
+  return LIVE.champions.filter(c => c.team === team).length;
+}
+function fmtNum(n){
+  return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtPct(w,l){
+  const p = (w+l) ? w/(w+l) : 0;
+  return p.toFixed(3).replace(/^0/,"");
+}
+function ringsHTML(n){
+  if(!n) return "";
+  return `<span class="rings">${"<span class=\"r\"></span>".repeat(n)}</span>`;
+}
+function flip(rec){
+  const [a,b] = rec.split("-").map(Number);
+  return `${b}-${a}`;
+}
+function buildH2HTable(teams, matrix){
+  let head = `<thead><tr><th class="rowlabel"></th>${teams.map(t=>`<th>${t}</th>`).join("")}</tr></thead>`;
+  let body = teams.map(row=>{
+    const cells = teams.map(col=>{
+      if(col===row) return `<td class="self">—</td>`;
+      const rec = (matrix[row] && matrix[row][col]) || (matrix[col] && matrix[col][row] && flip(matrix[col][row]));
+      return rec ? `<td>${rec}</td>` : `<td class="empty">–</td>`;
+    }).join("");
+    return `<tr><td class="rowlabel team">${row}</td>${cells}</tr>`;
+  }).join("");
+  return head + `<tbody>${body}</tbody>`;
+}
+
+/* ---------- All-time standings ---------- */
+let atSort = {key:null, dir:1};
+function allTimeRows(){
+  return LIVE.allTimeStandings.map(r => ({
+    ...r, pct: (r.w+r.l)? r.w/(r.w+r.l) : 0, rings: ringCount(r.team)
+  }));
+}
+function renderAllTime(){
+  let rows = allTimeRows();
+  if(atSort.key){
+    rows.sort((a,b)=>{
+      const av=a[atSort.key], bv=b[atSort.key];
+      if(typeof av === "string") return av.localeCompare(bv)*atSort.dir;
+      return (av-bv)*atSort.dir;
+    });
+  }
+  const tbody = document.querySelector("#allTimeTable tbody");
+  tbody.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td class="num rank-cell">${i+1}</td>
+      <td class="team">${r.team}</td>
+      <td class="num">${r.w}</td>
+      <td class="num">${r.l}</td>
+      <td class="num">${fmtPct(r.w,r.l)}</td>
+      <td class="num">${fmtNum(r.pf)}</td>
+      <td class="num">${fmtNum(r.pa)}</td>
+      <td class="num">${r.rings}${ringsHTML(r.rings)}</td>
+    </tr>
+  `).join("");
+}
+document.querySelectorAll("#allTimeTable thead th.sortable").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    if(!LIVE) return;
+    const key = th.dataset.key;
+    if(atSort.key === key) atSort.dir *= -1; else { atSort.key = key; atSort.dir = key==="team" ? 1 : -1; }
+    document.querySelectorAll("#allTimeTable thead th").forEach(t=>t.removeAttribute("aria-sort"));
+    th.setAttribute("aria-sort", atSort.dir===1 ? "ascending" : "descending");
+    renderAllTime();
   });
 });
 
-// Default to All-Time on load
-activateTab('alltime');
+/* ---------- Champions strip ---------- */
+function renderChamps(){
+  document.getElementById("champStrip").innerHTML = LIVE.champions.map(c=>`
+    <div class="champ-chip">
+      <span class="ring-icon"></span>
+      <span>
+        <span class="yr">${c.year}</span><br>
+        <span class="nm">${c.team}</span>
+      </span>
+    </div>
+  `).join("");
+}
+
+/* ---------- Seasons ---------- */
+let years = [];
+let currentYear = null;
+
+function renderYearRail(){
+  document.getElementById("yearRail").innerHTML = years.map(y=>
+    `<button data-year="${y}" class="${y===currentYear?'active':''}">${y}</button>`
+  ).join("");
+  document.querySelectorAll("#yearRail button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentYear = Number(btn.dataset.year);
+      renderYearRail();
+      renderSeason();
+    });
+  });
+}
+
+let seasonSort = {key:null, dir:1};
+function renderSeason(){
+  const s = LIVE.seasons[currentYear];
+  if(!s){
+    document.getElementById("seasonContent").innerHTML = `<p class="loading-note">No data found for ${currentYear}.</p>`;
+    return;
+  }
+  const rows = s.standings.map(r=>({...r, pct:(r.w+r.l)?r.w/(r.w+r.l):0}));
+  let sorted = [...rows];
+  if(seasonSort.key){
+    sorted.sort((a,b)=>{
+      const av=a[seasonSort.key], bv=b[seasonSort.key];
+      if(typeof av==="string") return av.localeCompare(bv)*seasonSort.dir;
+      return (av-bv)*seasonSort.dir;
+    });
+  }
+
+  const standingsRows = sorted.map((r,i)=>`
+    <tr>
+      <td class="num rank-cell">${i+1}</td>
+      <td class="team">${r.team}</td>
+      <td class="num">${r.w}</td>
+      <td class="num">${r.l}</td>
+      <td class="num">${fmtPct(r.w,r.l)}</td>
+      <td class="num">${fmtNum(r.pf)}</td>
+      <td class="num">${fmtNum(r.pa)}</td>
+    </tr>
+  `).join("");
+
+  const podium = s.finalStandings.map((team,i)=>`
+    <div class="podium-row">
+      <span class="place">${i+1}</span>
+      <span class="nm">${team}</span>
+    </div>
+  `).join("");
+
+  document.getElementById("seasonContent").innerHTML = `
+    <section class="block">
+      <h2 class="h">${currentYear} season</h2>
+      <p class="sub">Regular season standings and head-to-head.</p>
+      <div class="season-grid">
+        <div>
+          <div class="table-scroll">
+            <table id="seasonStandingsTable">
+              <thead>
+                <tr>
+                  <th class="num">Rk</th>
+                  <th class="sortable" data-key="team">Team<span class="arrow">▾</span></th>
+                  <th class="num sortable" data-key="w">W<span class="arrow">▾</span></th>
+                  <th class="num sortable" data-key="l">L<span class="arrow">▾</span></th>
+                  <th class="num sortable" data-key="pct">Win %<span class="arrow">▾</span></th>
+                  <th class="num sortable" data-key="pf">PF<span class="arrow">▾</span></th>
+                  <th class="num sortable" data-key="pa">PA<span class="arrow">▾</span></th>
+                </tr>
+              </thead>
+              <tbody>${standingsRows}</tbody>
+            </table>
+          </div>
+
+          <div style="height:28px"></div>
+          <h2 class="h" style="font-size:20px;">Final standings</h2>
+          <div class="podium">${podium}</div>
+        </div>
+
+        <div>
+          <h2 class="h" style="font-size:20px;">Head-to-head</h2>
+          <div class="table-scroll">
+            <table class="h2h">${buildH2HTable(s.teams, s.h2h)}</table>
+          </div>
+          <div style="height:20px"></div>
+          <h2 class="h" style="font-size:20px;">Playoff bracket</h2>
+          <div class="bracket-frame">
+            <img src="${s.bracket}" alt="${currentYear} playoff bracket"
+                 onerror="this.closest('.bracket-frame').innerHTML='<div class=&quot;bracket-missing&quot;>Bracket image not found at ${s.bracket}</div>'">
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  document.querySelectorAll("#seasonStandingsTable thead th.sortable").forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const key = th.dataset.key;
+      if(seasonSort.key === key) seasonSort.dir *= -1; else { seasonSort.key = key; seasonSort.dir = key==="team" ? 1 : -1; }
+      renderSeason();
+    });
+  });
+}
+
+/* ---------- Players ---------- */
+function renderPlayers(){
+  document.getElementById("playerGrid").innerHTML = PLAYERS.map(p=>`
+    <div class="player-card">
+      <div class="player-photos ${p.expansion ? 'has-two' : ''}">
+        <img src="${p.photo}" alt="${p.team}" loading="lazy">
+        ${p.expansion ? `<img src="${p.expansion}" alt="${p.team}, since expansion" loading="lazy">` : ""}
+      </div>
+      <div class="player-name">${p.team}</div>
+      <div class="player-meta">${ringCount(p.team)} title${ringCount(p.team)===1?'':'s'}</div>
+    </div>
+  `).join("");
+}
+
+/* ---------- Hero stats ---------- */
+function renderHero(){
+  const champs = LIVE.champions;
+  const last = champs[champs.length-1];
+  const leader = [...LIVE.allTimeStandings].sort((a,b)=> (b.w/(b.w+b.l)) - (a.w/(a.w+a.l)))[0];
+  document.getElementById("heroTag").textContent = last
+    ? `${champs.length} seasons of standings, head-to-heads, and playoff brackets — reigning champion: ${last.team} (${last.year}).`
+    : `Standings, head-to-heads, and playoff brackets, season by season.`;
+  document.getElementById("statStrip").innerHTML = `
+    <div class="stat"><span class="num">${years.length}</span><span class="label">Seasons</span></div>
+    <div class="stat"><span class="num">${LIVE.allTimeStandings.length}</span><span class="label">Franchises</span></div>
+    <div class="stat"><span class="num">${champs.length}</span><span class="label">Titles awarded</span></div>
+    <div class="stat"><span class="num">${leader ? leader.team : "–"}</span><span class="label">All-time win %</span></div>
+  `;
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tabnav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabnav button').forEach(b=>b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+btn.dataset.panel).classList.add('active');
+  });
+});
+
+/* ---------- Status bar ---------- */
+function setStatus(mode, text){
+  const dot = document.getElementById("statusDot");
+  const label = document.getElementById("statusText");
+  dot.className = "dot-live" + (mode === "err" ? " err" : mode === "stale" ? " stale" : "");
+  label.textContent = text;
+}
+function showError(msg){
+  const banner = document.getElementById("errorBanner");
+  banner.innerHTML = msg;
+  banner.classList.add("show");
+}
+function hideError(){
+  document.getElementById("errorBanner").classList.remove("show");
+}
+
+/* ---------- Init / refresh ---------- */
+async function init(){
+  hideError();
+  setStatus("stale", "Loading data from the league spreadsheet…");
+  document.getElementById("refreshBtn").disabled = true;
+
+  try{
+    const {seasons, anyFetchAttempted, allFailed} = await loadSeasons();
+
+    if(!anyFetchAttempted){
+      throw new Error("Couldn't reach Google Sheets at all — check your internet connection and try Refresh.");
+    }
+    if(allFailed){
+      showError(`Connected to the spreadsheet, but no season tab had a filled-in standings table yet.
+        Double check the sheet is shared as "Anyone with the link can view", and that at least one
+        tab (named like <code>2016</code>) has its standings table filled in.`);
+    }
+
+    const agg = aggregateAllTime(seasons);
+    LIVE = {seasons, ...agg};
+    years = Object.keys(seasons).map(Number).sort((a,b)=>a-b);
+    currentYear = years[years.length-1] ?? null;
+
+    renderHero();
+    renderAllTime();
+    renderChamps();
+    document.getElementById("allTimeH2H").innerHTML = buildH2HTable(LIVE.teamOrder, LIVE.allTimeH2H);
+    renderYearRail();
+    renderSeason();
+    renderPlayers();
+
+    const now = new Date();
+    setStatus("live", `Live from the league spreadsheet · updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`);
+  } catch(err){
+    console.error("Between the Lines: data load failed", err);
+    setStatus("err", "Couldn't load the spreadsheet.");
+    showError(`Couldn't load data from the spreadsheet: <code>${(err && err.message) || err}</code>.
+      Make sure it's shared as "Anyone with the link can view" and try the Refresh button.
+      Open the browser console for more detail.`);
+  } finally {
+    document.getElementById("refreshBtn").disabled = false;
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", init);
+init();
 </script>
+
+</body>
+</html>
