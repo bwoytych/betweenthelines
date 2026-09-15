@@ -642,6 +642,17 @@ function findCell(grid, matchFn){
   return null;
 }
 
+function findAllCells(grid, matchFn){
+  const results = [];
+  for(let r=0; r<grid.length; r++){
+    const row = grid[r] || [];
+    for(let c=0; c<row.length; c++){
+      if(matchFn(cell(grid,r,c), r, c)) results.push({r,c});
+    }
+  }
+  return results;
+}
+
 function parseWeeklyGames(grid){
   const head = findCell(grid, v => v.toLowerCase() === "week");
   if(!head) return [];
@@ -742,6 +753,10 @@ function sortStandingsByRecord(rows, h2h){
 /* ===================================================================== */
 
 const RECORD_BOOK_SHEET_NAME = "Record Book";
+// Display order and labels only — these are NOT used to locate the data
+// (see parseRecordBook below), so a typo or reworded header in the sheet
+// itself can't break parsing. What matters is that the four position
+// blocks appear left-to-right in this order, which matches the sheet.
 const RECORD_BOOK_POSITIONS = [
   {key:"qb", label:"Quarterback"},
   {key:"rb", label:"Running Back"},
@@ -749,35 +764,29 @@ const RECORD_BOOK_POSITIONS = [
   {key:"te", label:"Tight End"},
 ];
 
-// Each position's table is four columns (Year, Name, Points, Owner) sitting
-// under a merged header cell with the position's name. Found by label, same
-// as everything else, so reordering or resizing these tables in the sheet
-// doesn't break anything here. Matching is normalized (case, spacing, and
-// punctuation stripped) so small formatting differences in the sheet's
-// header text don't break the lookup.
 function normalizeLabel(s){
   return String(s || "").toLowerCase().replace(/[^a-z]/g, "");
 }
-function parseRecordBookPosition(grid, label){
-  const target = normalizeLabel(label);
-  const head = findCell(grid, v => normalizeLabel(v) === target);
-  if(!head) return [];
-  // The "Year" sub-header sits in the same column, a few rows below the
-  // merged position label — search down rather than assuming exactly one
-  // row, in case the sheet's header is laid out slightly differently.
-  let subRow = null;
-  for(let r=head.r+1; r<=head.r+5; r++){
-    if(normalizeLabel(cell(grid, r, head.c)) === "year"){ subRow = r; break; }
-  }
-  if(subRow === null) return [];
 
+// Each position's table is four columns (Year, Name, Points, Owner). The
+// sheet's sub-header row only labels "Name" and "Owner" — Year and Points
+// are left blank — so this anchors on "Name" cells instead of trying to
+// match the position's own label (which turned out to be both misspelled
+// and not reliably aligned with its data columns anyway). Whatever sits
+// one column left of "Name" is Year, one right is Points, two right is
+// Owner — and the four Name cells are taken in left-to-right order as
+// Quarterback, Running Back, Wide Receiver, Tight End.
+function parseRecordBookPositionAt(grid, subRow, nameCol){
+  const yearCol = nameCol - 1;
+  const pointsCol = nameCol + 1;
+  const ownerCol = nameCol + 2;
   const rows = [];
   for(let r=subRow+1; r<grid.length; r++){
-    const year = cell(grid, r, head.c);
-    if(!year) break;
-    const name = cell(grid, r, head.c+1);
-    const points = parseFloat(cell(grid, r, head.c+2));
-    const owner = cell(grid, r, head.c+3);
+    const year = cell(grid, r, yearCol);
+    const name = cell(grid, r, nameCol);
+    if(!year && !name) break;
+    const points = parseFloat(cell(grid, r, pointsCol));
+    const owner = cell(grid, r, ownerCol);
     if(!name || !owner) continue;
     rows.push({year: Number(year), name, points: Number.isNaN(points) ? 0 : points, owner});
   }
@@ -788,8 +797,22 @@ function parseRecordBookPosition(grid, label){
 }
 
 function parseRecordBook(grid){
+  const nameCells = findAllCells(grid, v => normalizeLabel(v) === "name");
+  // Group by row — the four "Name" headers should all sit on the same row.
+  // If more than one row has "Name" cells for some reason, use whichever
+  // row has the most (i.e. the real sub-header row).
+  const byRow = {};
+  nameCells.forEach(({r, c}) => { (byRow[r] = byRow[r] || []).push(c); });
+  let subRow = null, cols = [];
+  Object.entries(byRow).forEach(([r, cs]) => {
+    if(cs.length > cols.length){ subRow = Number(r); cols = cs; }
+  });
+  cols.sort((a,b) => a-b);
+
   const positions = {};
-  RECORD_BOOK_POSITIONS.forEach(p => { positions[p.key] = parseRecordBookPosition(grid, p.label); });
+  RECORD_BOOK_POSITIONS.forEach((p, i) => {
+    positions[p.key] = cols[i] !== undefined ? parseRecordBookPositionAt(grid, subRow, cols[i]) : [];
+  });
   return positions;
 }
 
