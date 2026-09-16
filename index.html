@@ -487,16 +487,46 @@
     </section>
 
     <section class="block">
+      <h2 class="h">Head-to-head, all time</h2>
+      <p class="sub">Row team's record against column team.</p>
+      <div class="table-scroll">
+        <table class="h2h" id="allTimeH2H"></table>
+      </div>
+    </section>
+
+    <section class="block">
       <h2 class="h">Champions</h2>
       <p class="sub">One ring per title — taken from each season's final standings.</p>
       <div class="champs" id="champStrip"><span class="loading-note">Loading…</span></div>
     </section>
 
     <section class="block">
-      <h2 class="h">Head-to-head, all time</h2>
-      <p class="sub">Row team's record against column team.</p>
+      <h2 class="h">Since expansion (2022–present)</h2>
+      <p class="sub">Same numbers, counting only the 8-team era.</p>
       <div class="table-scroll">
-        <table class="h2h" id="allTimeH2H"></table>
+        <table id="sinceExpansionTable">
+          <thead>
+            <tr>
+              <th class="num">Rk</th>
+              <th class="sortable" data-key="team">Team<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="w">W<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="l">L<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pct">Win %<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pf">PF<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="pa">PA<span class="arrow">▾</span></th>
+              <th class="num sortable" data-key="rings">Rings<span class="arrow">▾</span></th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="8" class="loading-note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="h">Head-to-head, since expansion</h2>
+      <p class="sub">Row team's record against column team, 2022–present.</p>
+      <div class="table-scroll">
+        <table class="h2h" id="sinceExpansionH2H"></table>
       </div>
     </section>
 
@@ -897,24 +927,43 @@ async function loadSeasons(){
   return {seasons, anyFetchAttempted, allFailed};
 }
 
-function aggregateAllTime(seasons){
-  const totals = {};   // team -> {w,l,pf,pa}
-  const h2hTotals = {}; // rowTeam -> colTeam -> {w,l}
-  const teamOrder = [];
+function extractChampions(seasons){
   const champions = [];
-
   Object.keys(seasons).map(Number).sort((a,b)=>a-b).forEach(year => {
     const s = seasons[year];
+    if(s.finalStandings[0]) champions.push({year, team: s.finalStandings[0]});
+  });
+  return champions;
+}
 
-    s.standings.forEach(row => {
-      if(!totals[row.team]){ totals[row.team] = {w:0,l:0,pf:0,pa:0}; teamOrder.push(row.team); }
-      totals[row.team].w += row.w;
-      totals[row.team].l += row.l;
-      totals[row.team].pf += row.pf;
-      totals[row.team].pa += row.pa;
-    });
+// Builds a standings table + head-to-head matrix scoped to years >= minYear.
+// Reuses computePlayerStats per team so the extremes (most/least PF,
+// biggest win/loss) and era-scoped ring count stay consistent with what
+// each player's own profile page shows — one source of truth for both.
+function buildStandingsAndH2H(seasons, minYear){
+  const teamSet = new Set();
+  Object.keys(seasons).map(Number).filter(y => y >= minYear).forEach(y => {
+    seasons[y].standings.forEach(r => teamSet.add(r.team));
+  });
 
-    Object.entries(s.h2h).forEach(([rowTeam, opponents]) => {
+  const standings = [...teamSet].map(team => {
+    const s = computePlayerStats(team, seasons, minYear);
+    return {
+      team,
+      w: s.record.w, l: s.record.l, pf: s.record.pf, pa: s.record.pa,
+      rings: s.champWins,
+      mostPF: s.mostPF, leastPF: s.leastPF,
+      biggestWin: s.biggestWinMargin, biggestLoss: s.biggestLossMargin,
+    };
+  }).sort((a,b) => {
+    const pa_ = (a.w+a.l) ? a.w/(a.w+a.l) : 0;
+    const pb_ = (b.w+b.l) ? b.w/(b.w+b.l) : 0;
+    return pb_ - pa_ || b.w - a.w;
+  });
+
+  const h2hTotals = {};
+  Object.keys(seasons).map(Number).filter(y => y >= minYear).forEach(year => {
+    Object.entries(seasons[year].h2h).forEach(([rowTeam, opponents]) => {
       Object.entries(opponents).forEach(([colTeam, rec]) => {
         const [w,l] = rec.split("-").map(Number);
         if(Number.isNaN(w) || Number.isNaN(l)) return;
@@ -924,27 +973,14 @@ function aggregateAllTime(seasons){
         h2hTotals[rowTeam][colTeam].l += l;
       });
     });
-
-    if(s.finalStandings[0]) champions.push({year, team: s.finalStandings[0]});
   });
-
-  const allTimeStandings = teamOrder
-    .map(team => ({team, ...totals[team]}))
-    .sort((a,b) => {
-      const pa_ = (a.w+a.l) ? a.w/(a.w+a.l) : 0;
-      const pb_ = (b.w+b.l) ? b.w/(b.w+b.l) : 0;
-      return pb_ - pa_ || b.w - a.w;
-    });
-
-  const allTimeH2H = {};
+  const h2h = {};
   Object.entries(h2hTotals).forEach(([rowTeam, opponents]) => {
-    allTimeH2H[rowTeam] = {};
-    Object.entries(opponents).forEach(([colTeam, rec]) => {
-      allTimeH2H[rowTeam][colTeam] = `${rec.w}-${rec.l}`;
-    });
+    h2h[rowTeam] = {};
+    Object.entries(opponents).forEach(([colTeam, rec]) => { h2h[rowTeam][colTeam] = `${rec.w}-${rec.l}`; });
   });
 
-  return {allTimeStandings, allTimeH2H, champions, teamOrder};
+  return {standings, h2h, teams: standings.map(s => s.team)};
 }
 
 /* ---------- Per-player profile stats ----------
@@ -1040,11 +1076,8 @@ function computePlayerStats(team, seasons, minYear){
 /* Rendering (unchanged in spirit from the static version)               */
 /* ===================================================================== */
 
-let LIVE = null; // {seasons, allTimeStandings, allTimeH2H, champions, teamOrder}
+let LIVE = null; // {seasons, champions, allTime:{standings,h2h,teams}, sinceExpansion:{...}}
 
-function ringCount(team){
-  return LIVE.champions.filter(c => c.team === team).length;
-}
 function fmtNum(n){
   return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
 }
@@ -1055,6 +1088,9 @@ function fmtPct(w,l){
 function ringsHTML(n){
   if(!n) return "";
   return `<span class="rings">${"<span class=\"r\"></span>".repeat(n)}</span>`;
+}
+function fmtExtreme(n){
+  return (n===null || n===undefined) ? "–" : fmtNum(n);
 }
 function flip(rec){
   const [a,b] = rec.split("-").map(Number);
@@ -1073,23 +1109,18 @@ function buildH2HTable(teams, matrix){
   return head + `<tbody>${body}</tbody>`;
 }
 
-/* ---------- All-time standings ---------- */
-let atSort = {key:null, dir:1};
-function allTimeRows(){
-  return LIVE.allTimeStandings.map(r => ({
-    ...r, pct: (r.w+r.l)? r.w/(r.w+r.l) : 0, rings: ringCount(r.team)
-  }));
-}
-function renderAllTime(){
-  let rows = allTimeRows();
-  if(atSort.key){
+/* ---------- Standings tables (All-Time and Since Expansion share this) ---------- */
+// Columns: Rk, Team, Rings, W, L, Win%, PF, PA, Most PF, Least PF, Biggest Win, Biggest Loss
+function renderStandingsTable(tableId, sortState, rawRows){
+  let rows = rawRows.map(r => ({...r, pct: (r.w+r.l) ? r.w/(r.w+r.l) : 0}));
+  if(sortState.key){
     rows.sort((a,b)=>{
-      const av=a[atSort.key], bv=b[atSort.key];
-      if(typeof av === "string") return av.localeCompare(bv)*atSort.dir;
-      return (av-bv)*atSort.dir;
+      const av=a[sortState.key], bv=b[sortState.key];
+      if(typeof av === "string") return av.localeCompare(bv)*sortState.dir;
+      return (av-bv)*sortState.dir;
     });
   }
-  const tbody = document.querySelector("#allTimeTable tbody");
+  const tbody = document.querySelector(`#${tableId} tbody`);
   tbody.innerHTML = rows.map((r,i)=>`
     <tr>
       <td class="num rank-cell">${i+1}</td>
@@ -1103,16 +1134,30 @@ function renderAllTime(){
     </tr>
   `).join("");
 }
-document.querySelectorAll("#allTimeTable thead th.sortable").forEach(th=>{
-  th.addEventListener("click", ()=>{
-    if(!LIVE) return;
-    const key = th.dataset.key;
-    if(atSort.key === key) atSort.dir *= -1; else { atSort.key = key; atSort.dir = key==="team" ? 1 : -1; }
-    document.querySelectorAll("#allTimeTable thead th").forEach(t=>t.removeAttribute("aria-sort"));
-    th.setAttribute("aria-sort", atSort.dir===1 ? "ascending" : "descending");
-    renderAllTime();
+function wireSortableHeaders(tableId, sortState, renderFn){
+  document.querySelectorAll(`#${tableId} thead th.sortable`).forEach(th=>{
+    th.addEventListener("click", ()=>{
+      if(!LIVE) return;
+      const key = th.dataset.key;
+      if(sortState.key === key) sortState.dir *= -1; else { sortState.key = key; sortState.dir = key==="team" ? 1 : -1; }
+      document.querySelectorAll(`#${tableId} thead th`).forEach(t=>t.removeAttribute("aria-sort"));
+      th.setAttribute("aria-sort", sortState.dir===1 ? "ascending" : "descending");
+      renderFn();
+    });
   });
-});
+}
+
+let atSort = {key:null, dir:1};
+function renderAllTime(){
+  renderStandingsTable("allTimeTable", atSort, LIVE.allTime.standings);
+}
+wireSortableHeaders("allTimeTable", atSort, renderAllTime);
+
+let seSort = {key:null, dir:1};
+function renderSinceExpansion(){
+  renderStandingsTable("sinceExpansionTable", seSort, LIVE.sinceExpansion.standings);
+}
+wireSortableHeaders("sinceExpansionTable", seSort, renderSinceExpansion);
 
 /* ---------- Champions strip ---------- */
 function renderChamps(){
@@ -1583,15 +1628,19 @@ async function init(){
         tab (named like <code>2016</code>) has its standings table filled in.`);
     }
 
-    const agg = aggregateAllTime(seasons);
-    LIVE = {seasons, ...agg};
+    const champions = extractChampions(seasons);
+    const allTime = buildStandingsAndH2H(seasons, LEAGUE_FOUNDED);
+    const sinceExpansion = buildStandingsAndH2H(seasons, EXPANSION_YEAR);
+    LIVE = {seasons, champions, allTime, sinceExpansion};
     years = Object.keys(seasons).map(Number).sort((a,b)=>a-b);
     currentYear = years[years.length-1] ?? null;
 
     renderHero();
     renderAllTime();
+    renderSinceExpansion();
     renderChamps();
-    document.getElementById("allTimeH2H").innerHTML = buildH2HTable(LIVE.teamOrder, LIVE.allTimeH2H);
+    document.getElementById("allTimeH2H").innerHTML = buildH2HTable(LIVE.allTime.teams, LIVE.allTime.h2h);
+    document.getElementById("sinceExpansionH2H").innerHTML = buildH2HTable(LIVE.sinceExpansion.teams, LIVE.sinceExpansion.h2h);
     renderYearRail();
     renderSeason();
     renderPlayers();
